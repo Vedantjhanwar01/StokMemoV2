@@ -1,0 +1,6 @@
+{
+    "type": "module",
+    "name": "stockmemo",
+    "version": "1.0.0",
+    "description": "AI-powered stock research memos"
+}

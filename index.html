@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMemo - Analytical Research Memos</title>
+    <meta name="description"
+        content="Generate analyst-grade research memos for listed companies using publicly available information">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <h1>StockMemo</h1>
+                <span class="tagline">Analytical Research</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Search Section -->
+            <section class="search-section" id="searchSection">
+                <h2 class="section-title">Generate Research Memo</h2>
+                <p class="section-subtitle">Enter a company name to generate an analytical research memo using publicly
+                    available information</p>
+
+                <form class="search-form" id="searchForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="companyName">Company Name</label>
+                            <input type="text" id="companyName" placeholder="Start typing to search companies..."
+                                required autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="exchange">Exchange</label>
+                            <select id="exchange" required>
+                                <option value="NSE">NSE</option>
+                                <option value="BSE">BSE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="generateBtn">
+                        <span class="btn-text">Generate Memo</span>
+                        <svg class="btn-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- API Key Notice -->
+                <div class="notice" id="apiKeyNotice" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        <circle cx="10" cy="13" r="0.5" fill="currentColor" />
+                    </svg>
+                    <span>API key required. Click settings to configure.</span>
+                </div>
+            </section>
+
+            <!-- Loading Section -->
+            <section class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-card">
+                    <div class="spinner"></div>
+                    <h3 class="loading-title">Researching <span id="loadingCompany"></span></h3>
+                    <p class="loading-status" id="loadingStatus">Resolving company information...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Memo Section -->
+            <section class="memo-section" id="memoSection" style="display: none;">
+                <div class="memo-header">
+                    <button class="btn-back" id="backBtn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        New Search
+                    </button>
+                    <button class="btn-export" id="exportBtn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 12V4M10 4L7 7M10 4L13 7" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path
+                                d="M16 12V15C16 15.5304 15.7893 16.0391 15.4142 16.4142C15.0391 16.7893 14.5304 17 14 17H6C5.46957 17 4.96086 16.7893 4.58579 16.4142C4.21071 16.0391 4 15.5304 4 15V12"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        Export
+                    </button>
+                </div>
+
+                <div class="memo-content" id="memoContent">
+                    <!-- Memo will be rendered here -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="modal-close" id="modalClose">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="apiKey">Gemini API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your Gemini API key" autocomplete="off">
+                    <small class="form-hint">Your API key is stored locally and never shared. Get your key from <a
+                            href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI
+                            Studio</a>.</small>
+                </div>
+                <button class="btn-primary" id="saveApiKey">Save API Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="config.js"></script>
+    <script src="memo-generator.js"></script>
+    <script src="charts.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
