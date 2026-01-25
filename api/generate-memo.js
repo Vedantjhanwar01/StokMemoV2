@@ -1,4 +1,5 @@
-// WORKING GROQ AI - ORIGINAL ANALYTICAL MEMO FORMAT
+// ENHANCED: GROQ AI + FMP REAL FINANCIAL DATA
+import FMPClient from './fmp-client.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,17 +21,39 @@ export default async function handler(req, res) {
   }
 
   const groqApiKey = process.env.GROQ_API_KEY;
+  const fmpApiKey = process.env.FMP_API_KEY;
 
   if (!groqApiKey) {
     return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
   }
 
   try {
-    const researchData = await conductResearch(companyName, exchange, groqApiKey);
+    // Step 1: Try to resolve symbol from company name
+    const symbol = resolveSymbol(companyName, exchange);
+
+    // Step 2: Fetch FMP financial data (if FMP key available)
+    let fmpData = null;
+    if (fmpApiKey && symbol) {
+      try {
+        const fmpClient = new FMPClient(fmpApiKey);
+        console.log(`Fetching FMP data for symbol: ${symbol}`);
+        fmpData = await fmpClient.getAllData(symbol);
+        console.log('FMP data fetched successfully');
+      } catch (fmpError) {
+        console.warn('FMP data fetch failed, continuing with AI-only:', fmpError.message);
+        // Continue without FMP data - AI will generate analysis
+      }
+    } else {
+      console.log('FMP API key not configured or symbol not resolved - using AI-only mode');
+    }
+
+    // Step 3: Get AI analysis (with or without FMP context)
+    const researchData = await conductResearch(companyName, exchange, groqApiKey, fmpData);
 
     return res.status(200).json({
       success: true,
-      data: researchData
+      data: researchData,
+      dataSource: fmpData ? 'FMP + AI Analysis' : 'AI Analysis Only'
     });
 
   } catch (error) {
@@ -42,7 +65,36 @@ export default async function handler(req, res) {
   }
 }
 
-async function conductResearch(companyName, exchange, apiKey) {
+// Symbol resolver - maps company names to ticker symbols
+function resolveSymbol(companyName, exchange) {
+  const symbolMap = {
+    // US Stocks
+    'apple': 'AAPL',
+    'microsoft': 'MSFT',
+    'google': 'GOOGL',
+    'alphabet': 'GOOGL',
+    'amazon': 'AMZN',
+    'meta': 'META',
+    'facebook': 'META',
+    'tesla': 'TSLA',
+    'nvidia': 'NVDA',
+    'netflix': 'NFLX',
+
+    // Indian Stocks (NSE)
+    'reliance': 'RELIANCE.NS',
+    'tcs': 'TCS.NS',
+    'infosys': 'INFY.NS',
+    'hdfc bank': 'HDFCBANK.NS',
+    'icici bank': 'ICICIBANK.NS',
+    'bharti airtel': 'BHARTIARTL.NS',
+    'itc': 'ITC.NS'
+  };
+
+  const key = companyName.toLowerCase().trim();
+  return symbolMap[key] || null;
+}
+
+async function conductResearch(companyName, exchange, apiKey, fmpData = null) {
   const prompt = `You are a senior equity research analyst. Generate a structured analytical research memo for ${companyName} (${exchange}).
 
 Return ONLY valid JSON (no markdown, no backticks, no explanation) with this EXACT structure:
@@ -178,7 +230,22 @@ Return ONLY the JSON object. NO markdown, NO backticks, NO explanation.`;
 
   // Parse and return
   try {
-    return JSON.parse(jsonText);
+    const aiAnalysis = JSON.parse(jsonText);
+
+    // Combine AI analysis with FMP real data
+    const result = {
+      ...aiAnalysis,
+      // Add FMP data if available
+      fmpData: fmpData ? {
+        quote: fmpData.quote,
+        prices: fmpData.prices ? fmpData.prices.slice(0, 252) : null, // Last year of daily prices
+        statements: fmpData.statements,
+        ratios: fmpData.ratios,
+        keyMetrics: fmpData.keyMetrics
+      } : null
+    };
+
+    return result;
   } catch (parseError) {
     console.error('JSON parse error:', parseError);
     console.error('AI Response:', aiResponse);

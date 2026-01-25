@@ -7,43 +7,95 @@ class MemoGenerator {
         // Title
         sections.push(this.generateTitle(company));
 
-        // NEW: Section 1 - Price & Market Data (with numbers)
-        sections.push(this.generatePriceData(researchData.priceData));
+        // NEW: Real FMP Data Section (if available)
+        if (researchData.fmpData && researchData.fmpData.quote) {
+            sections.push(this.generateRealFinancialData(researchData.fmpData));
+        }
 
-        // NEW: Section 2 - Financial Snapshot (table)
-        sections.push(this.generateFinancialSnapshot(researchData.financialSnapshot));
+        // AI Analysis Sections
+        // Section 1: Business Snapshot
+        sections.push(this.generateBusinessSnapshot(researchData.research?.businessSnapshot));
 
-        // NEW: Section 3 - Segment Breakdown
-        sections.push(this.generateSegmentBreakdown(researchData.segmentBreakdown));
+        // Section 2: Why This Could Work
+        sections.push(this.generateWhyThisCOULDWork(researchData.research?.whyThisCOULDWork));
 
-        //NEW: Section 4 - Financial Ratios (table)
-        sections.push(this.generateFinancialRatiosTable(researchData.financialRatios));
+        // Section 3: Key Risks
+        sections.push(this.generateKeyRisks(researchData.research?.keyRisks));
 
-        // Section 5: Business Snapshot (AI)
-        sections.push(this.generateBusinessSnapshot(researchData.businessSnapshot));
+        // Section 4: Judgment Support
+        sections.push(this.generateJudgmentSupport(researchData.research?.judgmentSupport));
 
-        // Section 6: Why This Could Work (AI)
-        sections.push(this.generateWhyThisCOULDWork(researchData.whyThisCOULDWork));
+        // Section 5: Validation Needs
+        sections.push(this.generateValidationNeeds(researchData.research?.validationNeeds));
 
-        // Section 7: Key Risks (AI)
-        sections.push(this.generateKeyRisks(researchData.keyRisks));
-
-        // NEW: Section 8 - Valuation Context (with PE ratios)
-        sections.push(this.generateValuationContext(researchData.valuationMetrics, researchData.valuationSanity));
-
-        // Section 9: Judgment Support (AI)
-        sections.push(this.generateJudgmentSupport(researchData.judgmentSupport));
-
-        // Section 10: Validation Needs (AI)
-        sections.push(this.generateValidationNeeds(researchData.validationNeeds));
-
-        // Section 11: News & Events (AI)
-        sections.push(this.generateNarrativeContext(researchData.narrativeContext));
+        // Section 6: News & Events
+        sections.push(this.generateNarrativeContext(researchData.research?.narrativeContext));
 
         // Disclaimer
         sections.push(this.generateDisclaimer());
 
-        return sections.join('\\n\\n');
+        return sections.join('\n\n');
+    }
+
+    // NEW: Display real FMP financial data
+    generateRealFinancialData(fmpData) {
+        const { quote, statements, ratios, keyMetrics } = fmpData;
+
+        let html = `<div class="memo-section">
+            <h2 class="memo-section-heading">REAL FINANCIAL DATA</h2>`;
+
+        // Stock Quote
+        if (quote) {
+            html += `<h3>Current Market Data</h3>
+            <table class="data-table">
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Current Price</td><td>$${quote.price?.toFixed(2) || 'N/A'}</td></tr>
+                <tr><td>Market Cap</td><td>${this.formatLargeNumber(quote.marketCap)}</td></tr>
+                <tr><td>52-Week High</td><td>$${quote.yearHigh?.toFixed(2) || 'N/A'}</td></tr>
+                <tr><td>52-Week Low</td><td>$${quote.yearLow?.toFixed(2) || 'N/A'}</td></tr>
+                <tr><td>Volume</td><td>${this.formatLargeNumber(quote.volume)}</td></tr>
+            </table>`;
+        }
+
+        // Financial Statements (5 years)
+        if (statements?.income && statements.income.length > 0) {
+            const years = statements.income.slice(0, 5);
+            html += `<h3>5-Year Financial Performance</h3>
+            <table class="data-table">
+                <tr>
+                    <th>Year</th>
+                    ${years.map(y => `<th>${y.calendarYear || y.date?.substring(0, 4)}</th>`).join('')}
+                </tr>
+                <tr>
+                    <td>Revenue</td>
+                    ${years.map(y => `<td>${this.formatLargeNumber(y.revenue)}</td>`).join('')}
+                </tr>
+                <tr>
+                    <td>Net Income</td>
+                    ${years.map(y => `<td>${this.formatLargeNumber(y.netIncome)}</td>`).join('')}
+                </tr>
+                <tr>
+                    <td>EBITDA</td>
+                    ${years.map(y => `<td>${this.formatLargeNumber(y.ebitda)}</td>`).join('')}
+                </tr>
+            </table>`;
+        }
+
+        // Key Ratios
+        if (ratios && ratios.length > 0) {
+            const latest = ratios[0];
+            html += `<h3>Key Financial Ratios</h3>
+            <table class="data-table">
+                <tr><th>Ratio</th><th>Value</th></tr>
+                <tr><td>ROE (Return on Equity)</td><td>${(latest.returnOnEquity * 100)?.toFixed(2)}%</td></tr>
+                <tr><td>Debt to Equity</td><td>${latest.debtEquityRatio?.toFixed(2)}</td></tr>
+                <tr><td>Current Ratio</td><td>${latest.currentRatio?.toFixed(2)}</td></tr>
+                <tr><td>Gross Margin</td><td>${(latest.grossProfitMargin * 100)?.toFixed(2)}%</td></tr>
+            </table>`;
+        }
+
+        html += `</div>`;
+        return html;
     }
 
     generateTitle(company) {

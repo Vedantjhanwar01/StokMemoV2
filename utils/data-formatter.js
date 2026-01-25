@@ -1,87 +1,78 @@
-// Data formatting utilities for financial data display
+// Data formatting utilities for financial data
 
-function formatCurrency(value, currency = '₹', scale = 'Cr') {
+/**
+ * Format currency values with proper symbol and thousands separator
+ */
+export function formatCurrency(value, currency = 'USD') {
     if (value === null || value === undefined) return 'Not disclosed';
 
-    let num = parseFloat(value);
-    if (isNaN(num)) return 'Not disclosed';
+    const absValue = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
 
-    // Convert to Crores (Indian) or Millions (US)
-    if (scale === 'Cr') {
-        num = num / 10000000; // Convert to Crores
-    } else if (scale === 'M') {
-        num = num / 1000000; // Convert to Millions
+    // Format large numbers with B/M/K suffix
+    if (absValue >= 1e9) {
+        return `${sign}$${(absValue / 1e9).toFixed(2)}B`;
+    } else if (absValue >= 1e6) {
+        return `${sign}$${(absValue / 1e6).toFixed(2)}M`;
+    } else if (absValue >= 1e3) {
+        return `${sign}$${(absValue / 1e3).toFixed(2)}K`;
     }
 
-    return `${currency}${num.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${scale}`;
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
+    }).format(value);
 }
 
-function formatPercent(value, decimals = 2) {
+/**
+ * Format percentage values
+ */
+export function formatPercent(value, decimals = 2) {
+    if (value === null || value === undefined) return 'Not disclosed';
+    return `${value.toFixed(decimals)}%`;
+}
+
+/**
+ * Format large numbers with K/M/B suffix
+ */
+export function formatNumber(value) {
     if (value === null || value === undefined) return 'Not disclosed';
 
-    const num = parseFloat(value);
-    if (isNaN(num)) return 'Not disclosed';
+    const absValue = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
 
-    return `${num.toFixed(decimals)}%`;
+    if (absValue >= 1e9) {
+        return `${sign}${(absValue / 1e9).toFixed(2)}B`;
+    } else if (absValue >= 1e6) {
+        return `${sign}${(absValue / 1e6).toFixed(2)}M`;
+    } else if (absValue >= 1e3) {
+        return `${sign}${(absValue / 1e3).toFixed(2)}K`;
+    }
+
+    return new Intl.NumberFormat('en-US').format(value);
 }
 
-function formatNumber(value, decimals = 2) {
-    if (value === null || value === undefined) return 'Not disclosed';
-
-    const num = parseFloat(value);
-    if (isNaN(num)) return 'Not disclosed';
-
-    return num.toLocaleString('en-IN', { maximumFractionDigits: decimals });
-}
-
-function formatRatio(value, decimals = 2) {
-    if (value === null || value === undefined) return 'Not disclosed';
-
-    const num = parseFloat(value);
-    if (isNaN(num)) return 'Not disclosed';
-
-    return num.toFixed(decimals);
-}
-
-function formatDate(dateString) {
+/**
+ * Format date strings
+ */
+export function formatDate(dateString) {
     if (!dateString) return 'Not disclosed';
 
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-IN', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    } catch {
-        return dateString;
-    }
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
 }
 
-function formatYear(dateString) {
-    if (!dateString) return 'Not disclosed';
-
-    try {
-        const date = new Date(dateString);
-        return date.getFullYear().toString();
-    } catch {
-        return dateString;
-    }
-}
-
-function safeValue(value, fallback = 'Not disclosed') {
-    return (value !== null && value !== undefined && value !== '') ? value : fallback;
-}
-
-// Export for both browser and Node.js
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        formatCurrency,
-        formatPercent,
-        formatNumber,
-        formatRatio,
-        formatDate,
-        formatYear,
-        safeValue
-    };
+/**
+ * Format ratio values (e.g., P/E ratio)
+ */
+export function formatRatio(value, decimals = 2) {
+    if (value === null || value === undefined) return 'Not disclosed';
+    if (!isFinite(value)) return 'N/A';
+    return value.toFixed(decimals);
 }
