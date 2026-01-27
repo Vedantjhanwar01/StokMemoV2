@@ -762,3 +762,595 @@ body {
 .mb-lg {
     margin-bottom: var(--spacing-lg);
 }
+
+/* ===============================================
+   INFO TOOLTIPS
+   =============================================== */
+
+.info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    margin-left: 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.6;
+    transition: opacity var(--transition-base), transform var(--transition-base);
+    vertical-align: middle;
+}
+
+.info-btn:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+.info-tooltip-popup {
+    position: fixed;
+    z-index: 10000;
+    width: 340px;
+    max-width: 90vw;
+    background: var(--color-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--color-border);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+}
+
+.info-tooltip-popup.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+}
+
+.tooltip-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tooltip-name {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.tooltip-category {
+    font-size: var(--font-size-xs);
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tooltip-close {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background var(--transition-base);
+}
+
+.tooltip-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.tooltip-body {
+    padding: var(--spacing-lg);
+}
+
+.tooltip-fullname {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.tooltip-definition {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-md);
+}
+
+.tooltip-formula {
+    background: var(--color-bg-secondary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.tooltip-formula code {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: var(--font-size-sm);
+    color: var(--color-primary-dark);
+}
+
+.tooltip-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.tooltip-interpretation {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.interp-item {
+    display: flex;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+}
+
+.interp-good {
+    background: rgba(3, 185, 124, 0.1);
+    color: #047857;
+}
+
+.interp-warning {
+    background: rgba(255, 185, 78, 0.15);
+    color: #b45309;
+}
+
+.interp-context {
+    background: rgba(75, 139, 245, 0.1);
+    color: var(--color-primary-dark);
+}
+
+.interp-icon {
+    flex-shrink: 0;
+}
+
+.tooltip-example {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-style: italic;
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+/* ===============================================
+   PROFESSIONAL DASHBOARD LAYOUT
+   =============================================== */
+
+.analytics-dashboard {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.stock-price-hero {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-md);
+}
+
+.current-price {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.price-change {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+}
+
+.price-change.positive {
+    background: rgba(3, 185, 124, 0.15);
+    color: #047857;
+}
+
+.price-change.negative {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+}
+
+.chart-timeframe-buttons {
+    display: flex;
+    gap: 4px;
+    background: var(--color-bg-secondary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+}
+
+.timeframe-btn {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.timeframe-btn:hover {
+    background: var(--color-bg-hover);
+}
+
+.timeframe-btn.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* ===============================================
+   METRIC CARDS GRID
+   =============================================== */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.metric-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    transition: all var(--transition-base);
+}
+
+.metric-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(75, 139, 245, 0.1);
+}
+
+.metric-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.metric-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.metric-value.positive {
+    color: var(--color-success);
+}
+
+.metric-value.negative {
+    color: var(--color-error);
+}
+
+.metric-subtext {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    margin-top: 4px;
+}
+
+/* ===============================================
+   CHART CONTAINERS
+   =============================================== */
+
+.chart-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.chart-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.chart-container {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    min-height: 300px;
+    position: relative;
+}
+
+.chart-container canvas {
+    max-height: 350px;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+/* ===============================================
+   RATIO GAUGES
+   =============================================== */
+
+.gauges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.gauge-card {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.gauge-visual {
+    position: relative;
+    width: 120px;
+    height: 60px;
+    margin: 0 auto var(--spacing-md);
+    overflow: hidden;
+}
+
+.gauge-arc {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 12px solid var(--color-border);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+    transform: rotate(-45deg);
+}
+
+.gauge-fill {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 12px solid transparent;
+    border-top-color: var(--color-primary);
+    border-right-color: var(--color-primary);
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+    transform: rotate(-45deg);
+    transition: transform 0.8s ease-out;
+}
+
+.gauge-value-display {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.gauge-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.gauge-status {
+    font-size: var(--font-size-xs);
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+}
+
+.gauge-status.good {
+    background: rgba(3, 185, 124, 0.15);
+    color: #047857;
+}
+
+.gauge-status.warning {
+    background: rgba(255, 185, 78, 0.2);
+    color: #b45309;
+}
+
+.gauge-status.danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+}
+
+/* ===============================================
+   PROGRESS BAR METRICS
+   =============================================== */
+
+.ratio-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.ratio-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.ratio-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ratio-bar-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ratio-bar-value {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.ratio-bar-track {
+    height: 10px;
+    background: var(--color-border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.ratio-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.8s ease-out;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
+}
+
+.ratio-bar-fill.excellent {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.ratio-bar-fill.good {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.ratio-bar-fill.warning {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.ratio-bar-fill.danger {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* ===============================================
+   CATEGORY SECTIONS
+   =============================================== */
+
+.analytics-category {
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.category-icon {
+    font-size: 1.5rem;
+}
+
+.category-title {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.category-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    margin-left: auto;
+}
+
+/* ===============================================
+   RESPONSIVE DASHBOARD
+   =============================================== */
+
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .gauges-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .current-price {
+        font-size: 2rem;
+    }
+
+    .chart-timeframe-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .info-tooltip-popup {
+        width: 95vw;
+        left: 2.5vw !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gauges-grid {
+        grid-template-columns: 1fr;
+    }
+}
