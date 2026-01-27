@@ -333,12 +333,27 @@ class MemoGenerator {
 // Dashboard Initialization Function
 // ============================================
 function initializeDashboard(fmpData) {
-    if (!fmpData) return;
+    console.log('=== Dashboard Initialization Started ===');
+    console.log('fmpData received:', fmpData);
+    console.log('window.chartsManager exists:', !!window.chartsManager);
+
+    if (!fmpData) {
+        console.error('No fmpData provided to initializeDashboard');
+        return;
+    }
 
     const { quote, profile, prices, statements, ratios, keyMetrics } = fmpData;
 
+    console.log('Data breakdown:');
+    console.log('- quote:', quote ? 'exists' : 'missing', quote);
+    console.log('- prices:', prices ? `${prices.length} items` : 'missing');
+    console.log('- statements:', statements);
+    console.log('- ratios:', ratios ? `${ratios.length} items` : 'missing');
+    console.log('- keyMetrics:', keyMetrics ? `${keyMetrics.length} items` : 'missing');
+
     // 1. Initialize Price Chart
     if (prices && prices.length > 0 && window.chartsManager) {
+        console.log('Creating price chart...');
         window.chartsManager.createPriceChart('priceChartContainer', prices, '1Y');
 
         // Timeframe button handlers
@@ -349,10 +364,13 @@ function initializeDashboard(fmpData) {
                 window.chartsManager.createPriceChart('priceChartContainer', prices, this.dataset.tf);
             });
         });
+    } else {
+        console.warn('Price chart skipped - prices:', !!prices, 'chartsManager:', !!window.chartsManager);
     }
 
     // 2. Key Metrics Grid
     if (quote && window.chartsManager) {
+        console.log('Creating key metrics grid...');
         const latestMetrics = keyMetrics?.[0] || {};
         const latestRatios = ratios?.[0] || {};
 
