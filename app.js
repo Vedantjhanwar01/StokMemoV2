@@ -167,23 +167,18 @@ class StockMemoApp {
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Charts disabled for template version
-        /*
-        if (researchResult.research.financialStructure?.segments) {
-            const financialSection = document.querySelector('.memo-content .memo-section:nth-child(3)');
-            if (financialSection) {
-                const chartContainer = document.createElement('div');
-                chartContainer.id = 'segmentChart';
-                chartContainer.className = 'chart-container';
-                financialSection.appendChild(chartContainer);
-        
-                this.chartsManager.createSegmentChart(
-                    'segmentChart',
-                    researchResult.research.financialStructure.segments
-                );
-            }
+        // Initialize the analytics dashboard with FMP data
+        if (researchResult.fmpData && typeof initializeDashboard === 'function') {
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                try {
+                    initializeDashboard(researchResult.fmpData);
+                    console.log('Dashboard initialized successfully');
+                } catch (err) {
+                    console.error('Failed to initialize dashboard:', err);
+                }
+            }, 150);
         }
-        */
     }
 
     showSearchSection() {

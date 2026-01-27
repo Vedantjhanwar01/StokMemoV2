@@ -149,21 +149,6 @@ class MemoGenerator {
 
         html += `</div>`;
 
-        // ============================================
-        // Initialize Charts (delayed)
-        // ============================================
-        html += `
-            <script>
-                (function() {
-                    // Wait for DOM to be ready
-                    setTimeout(() => {
-                        const fmpData = ${JSON.stringify(fmpData)};
-                        initializeDashboard(fmpData);
-                    }, 100);
-                })();
-            </script>
-        `;
-
         return html;
     }
 
