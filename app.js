@@ -74,7 +74,7 @@ class StockMemoApp {
 
             if (data.companies && data.companies.length > 0) {
                 resultsDiv.innerHTML = data.companies.map(company => `
-                    <div class="search-result-item" data-name="${company.name}">
+                    <div class="search-result-item" data-name="${company.name}" data-symbol="${company.symbol}" data-exchange="${company.exchange}">
                         <div class="company-name">${company.name}</div>
                         <div class="company-symbol">${company.symbol} · ${company.exchange}</div>
                     </div>
@@ -83,6 +83,9 @@ class StockMemoApp {
                 resultsDiv.querySelectorAll('.search-result-item').forEach(item => {
                     item.addEventListener('click', () => {
                         document.getElementById('companyName').value = item.dataset.name;
+                        // Store symbol and exchange for API call
+                        this.selectedSymbol = item.dataset.symbol;
+                        this.selectedExchange = item.dataset.exchange;
                         resultsDiv.style.display = 'none';
                     });
                 });
@@ -114,7 +117,8 @@ class StockMemoApp {
                 },
                 body: JSON.stringify({
                     companyName,
-                    exchange
+                    exchange: this.selectedExchange || exchange,
+                    symbol: this.selectedSymbol  // Pass symbol from search results
                 })
             });
 
@@ -131,7 +135,7 @@ class StockMemoApp {
 
             const memoHTML = this.memoGenerator.generateMemo(
                 data.company,
-                data.research
+                data  // Pass full data object (contains research + fmpData)
             );
 
             this.displayMemo(memoHTML, data);
@@ -200,7 +204,7 @@ class StockMemoApp {
 
         const plainText = this.memoGenerator.generatePlainText(
             this.currentResearch.company,
-            this.currentResearch.research
+            this.currentResearch  // Pass full data object
         );
 
         const blob = new Blob([plainText], { type: 'text/plain' });

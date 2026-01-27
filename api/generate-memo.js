@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { companyName, exchange } = req.body;
+  const { companyName, exchange, symbol: providedSymbol } = req.body;
 
   if (!companyName) {
     return res.status(400).json({ error: 'Company name is required' });
@@ -28,8 +28,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: Try to resolve symbol from company name
-    const symbol = resolveSymbol(companyName, exchange);
+    // Use provided symbol from search, or try to resolve from name
+    const symbol = providedSymbol || resolveSymbol(companyName, exchange);
 
     // Step 2: Fetch FMP financial data (if FMP key available)
     let fmpData = null;
