@@ -12,7 +12,7 @@ class InfoTooltip {
     async loadDefinitions() {
         // Import definitions dynamically for browser compatibility
         try {
-            const module = await import('./utils/financial-definitions.js');
+            const module = await import('../utils/financial-definitions.js');
             this.definitions = module.financialDefinitions;
         } catch (e) {
             console.warn('Could not load financial definitions:', e);
