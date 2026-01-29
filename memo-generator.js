@@ -378,26 +378,42 @@ function initializeDashboard(fmpData) {
         const latestMetrics = keyMetrics?.[0] || {};
         const latestRatios = ratios?.[0] || {};
 
-        // DEBUG: Log all available properties
-        console.log('=== DEBUG: Quote Object Properties ===');
-        console.log('quote keys:', Object.keys(quote));
-        console.log('quote.pe:', quote.pe, '| quote.peRatio:', quote.peRatio, '| quote.priceEarningsRatio:', quote.priceEarningsRatio);
-        console.log('quote.eps:', quote.eps, '| quote.earningsPerShare:', quote.earningsPerShare);
+        // DEBUG: Log all available properties as plain text (not expandable objects)
+        console.log('=== DEBUG: Quote Object Keys ===', Object.keys(quote).join(', '));
 
-        console.log('=== DEBUG: KeyMetrics Object Properties ===');
-        console.log('keyMetrics[0] keys:', Object.keys(latestMetrics));
-        console.log('P/E related:', latestMetrics.peRatio, latestMetrics.priceEarningsRatio, latestMetrics.pe);
-        console.log('P/B related:', latestMetrics.pbRatio, latestMetrics.priceToBookRatio);
-        console.log('P/S related:', latestMetrics.priceToSalesRatio, latestMetrics.psRatio);
+        console.log('=== DEBUG: KeyMetrics[0] FULL DATA ===');
+        console.log(JSON.stringify(latestMetrics, null, 2));
+
+        console.log('=== DEBUG: Ratios[0] FULL DATA ===');
+        console.log(JSON.stringify(latestRatios, null, 2));
 
         console.log('=== DEBUG: Ratios Object Properties ===');
         console.log('ratios[0] keys:', Object.keys(latestRatios));
         console.log('ROE related:', latestRatios.returnOnEquity, latestRatios.roe);
         console.log('ROA related:', latestRatios.returnOnAssets, latestRatios.roa);
 
-        // Get P/E and EPS - try multiple property names
-        const peRatio = quote.pe ?? quote.peRatio ?? latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio;
-        const epsValue = quote.eps ?? quote.earningsPerShare ?? latestMetrics.eps ?? latestMetrics.earningsPerShare;
+        // Get P/E and EPS - try multiple property names from keyMetrics since quote doesn't have them
+        // FMP stable API uses different property names than legacy API
+        const peRatio = latestMetrics.peRatioTTM ?? latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio ??
+            latestMetrics.priceToEarningsRatio ?? quote.pe ?? quote.peRatio;
+
+        const epsValue = latestMetrics.netIncomePerShareTTM ?? latestMetrics.netIncomePerShare ??
+            latestMetrics.eps ?? latestMetrics.earningsPerShare ??
+            quote.eps ?? quote.earningsPerShare;
+
+        // Also log what we found
+        console.log('Trying to find P/E from:', {
+            'km.peRatioTTM': latestMetrics.peRatioTTM,
+            'km.peRatio': latestMetrics.peRatio,
+            'km.priceEarningsRatio': latestMetrics.priceEarningsRatio,
+            'quote.pe': quote.pe
+        });
+        console.log('Trying to find EPS from:', {
+            'km.netIncomePerShareTTM': latestMetrics.netIncomePerShareTTM,
+            'km.netIncomePerShare': latestMetrics.netIncomePerShare,
+            'km.eps': latestMetrics.eps,
+            'quote.eps': quote.eps
+        });
 
         console.log('Resolved P/E:', peRatio, '| Resolved EPS:', epsValue);
 
