@@ -618,8 +618,12 @@ function initializeDashboard(fmpData) {
     }
 
     // 7. Valuation Metrics
-    if (quote && keyMetrics && Array.isArray(keyMetrics) && keyMetrics.length > 0 && window.chartsManager) {
-        const km = keyMetrics[0] || {};
+    // Check if we have either keyMetrics OR ratios, since valuation data is split between them
+    const hasKeyMetrics = keyMetrics && Array.isArray(keyMetrics) && keyMetrics.length > 0;
+    const hasRatios = ratios && Array.isArray(ratios) && ratios.length > 0;
+
+    if (quote && (hasKeyMetrics || hasRatios) && window.chartsManager) {
+        const km = hasKeyMetrics ? keyMetrics[0] : {};
 
         // DEBUG: Log keyMetrics properties
         console.log('=== DEBUG: Valuation KeyMetrics Properties ===');

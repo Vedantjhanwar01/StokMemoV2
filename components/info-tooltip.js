@@ -58,12 +58,23 @@ class InfoTooltip {
      * Show tooltip for a metric
      */
     showTooltip(metricKey, anchorElement) {
+        // Lazy load definitions if missing (handles scripts loading order issues)
+        if (!this.definitions || Object.keys(this.definitions).length === 0) {
+            this.definitions = window.financialDefinitions || {};
+        }
+
+        console.log('=== showTooltip called ===');
+        console.log('metricKey:', metricKey);
+        console.log('definitions loaded:', Object.keys(this.definitions || {}).length, 'items');
+
         // Hide existing tooltip
         this.hideTooltip();
 
         const definition = this.definitions?.[metricKey];
+        console.log('Definition found:', !!definition);
         if (!definition) {
             console.warn(`No definition found for: ${metricKey}`);
+            console.log('Available keys:', Object.keys(this.definitions || {}).slice(0, 10), '...');
             return;
         }
 
