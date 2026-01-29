@@ -65,10 +65,49 @@ export class FMPClient {
         if (from) params.from = from;
         if (to) params.to = to;
 
-        const data = await this.fetch('/historical-price-eod/full', params);
+        // Try multiple endpoint formats (FMP API has changed endpoints over time)
+        const endpoints = [
+            '/historical-price-eod/full',
+            '/historical-price-eod',
+            '/historical-price-full/full'
+        ];
 
-        // API returns {symbol, historical: [...]}
-        return data?.historical || [];
+        for (const endpoint of endpoints) {
+            try {
+                console.log(`FMP: Trying historical prices endpoint: ${endpoint}`);
+                const data = await this.fetch(endpoint, params);
+
+                let prices = [];
+
+                // Handle different response formats
+                if (Array.isArray(data)) {
+                    prices = data;
+                } else if (data?.historical && Array.isArray(data.historical)) {
+                    prices = data.historical;
+                } else if (data && typeof data === 'object') {
+                    // Try to find an array in the response
+                    for (const key of Object.keys(data)) {
+                        if (Array.isArray(data[key]) && data[key].length > 0) {
+                            console.log(`FMP prices: found array in key '${key}'`);
+                            prices = data[key];
+                            break;
+                        }
+                    }
+                }
+
+                if (prices.length > 0) {
+                    console.log(`FMP prices: SUCCESS - got ${prices.length} items from ${endpoint}`);
+                    return prices;
+                }
+
+                console.log(`FMP prices: ${endpoint} returned empty, trying next...`);
+            } catch (error) {
+                console.warn(`FMP: ${endpoint} failed:`, error.message);
+            }
+        }
+
+        console.warn('FMP prices: All endpoints returned empty or failed');
+        return [];
     }
 
     /**
