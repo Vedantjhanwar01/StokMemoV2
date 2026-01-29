@@ -416,13 +416,23 @@ class ChartsManager {
      * Create ratio progress bar
      */
     createRatioBar(containerId, metrics) {
+        console.log('=== createRatioBar called ===');
+        console.log('containerId:', containerId);
+        console.log('metrics received:', metrics);
+
         const container = document.getElementById(containerId);
-        if (!container) return;
+        if (!container) {
+            console.error('createRatioBar: Container not found:', containerId);
+            return;
+        }
 
         if (!metrics || metrics.length === 0) {
+            console.warn('createRatioBar: No metrics provided');
             container.innerHTML = '<p style="color:var(--color-text-tertiary);">Ratio data not available</p>';
             return;
         }
+
+        console.log('createRatioBar: Rendering', metrics.length, 'metrics');
 
         const bars = metrics.map(m => {
             // Calculate fill percentage based on value range
