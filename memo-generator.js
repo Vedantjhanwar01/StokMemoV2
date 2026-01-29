@@ -468,46 +468,63 @@ function initializeDashboard(fmpData) {
     if (ratios && Array.isArray(ratios) && ratios.length > 0 && window.chartsManager) {
         const r = ratios[0];
 
+        // Helper to get value from multiple possible property names
+        const getValue = (obj, ...keys) => {
+            for (const key of keys) {
+                if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+            }
+            return 0;
+        };
+
+        // Try multiple property name variations (FMP uses different names in stable vs legacy API)
+        const roe = getValue(r, 'returnOnEquityTTM', 'returnOnEquity', 'roe', 'roeTTM');
+        const roa = getValue(r, 'returnOnAssetsTTM', 'returnOnAssets', 'roa', 'roaTTM');
+        const grossMargin = getValue(r, 'grossProfitMarginTTM', 'grossProfitMargin', 'grossMargin');
+        const opMargin = getValue(r, 'operatingProfitMarginTTM', 'operatingProfitMargin', 'operatingMargin');
+        const netMargin = getValue(r, 'netProfitMarginTTM', 'netProfitMargin', 'netMargin');
+
+        console.log('Profitability values found:', { roe, roa, grossMargin, opMargin, netMargin });
+
         const profitMetrics = [
             {
                 label: 'Return on Equity (ROE)',
                 metricKey: 'roe',
-                value: r.returnOnEquity || 0,
-                displayValue: `${((r.returnOnEquity || 0) * 100).toFixed(1)}%`,
+                value: roe,
+                displayValue: `${(roe * 100).toFixed(1)}%`,
                 maxValue: 0.5,
-                status: getRatioStatus(r.returnOnEquity, 0.15, 0.10, false)
+                status: getRatioStatus(roe, 0.15, 0.10, false)
             },
             {
                 label: 'Return on Assets (ROA)',
                 metricKey: 'roa',
-                value: r.returnOnAssets || 0,
-                displayValue: `${((r.returnOnAssets || 0) * 100).toFixed(1)}%`,
+                value: roa,
+                displayValue: `${(roa * 100).toFixed(1)}%`,
                 maxValue: 0.3,
-                status: getRatioStatus(r.returnOnAssets, 0.10, 0.05, false)
+                status: getRatioStatus(roa, 0.10, 0.05, false)
             },
             {
                 label: 'Gross Margin',
                 metricKey: 'gross_margin',
-                value: r.grossProfitMargin || 0,
-                displayValue: `${((r.grossProfitMargin || 0) * 100).toFixed(1)}%`,
+                value: grossMargin,
+                displayValue: `${(grossMargin * 100).toFixed(1)}%`,
                 maxValue: 1,
-                status: getRatioStatus(r.grossProfitMargin, 0.40, 0.25, false)
+                status: getRatioStatus(grossMargin, 0.40, 0.25, false)
             },
             {
                 label: 'Operating Margin',
                 metricKey: 'operating_margin',
-                value: r.operatingProfitMargin || 0,
-                displayValue: `${((r.operatingProfitMargin || 0) * 100).toFixed(1)}%`,
+                value: opMargin,
+                displayValue: `${(opMargin * 100).toFixed(1)}%`,
                 maxValue: 0.5,
-                status: getRatioStatus(r.operatingProfitMargin, 0.15, 0.08, false)
+                status: getRatioStatus(opMargin, 0.15, 0.08, false)
             },
             {
                 label: 'Net Margin',
                 metricKey: 'net_margin',
-                value: r.netProfitMargin || 0,
-                displayValue: `${((r.netProfitMargin || 0) * 100).toFixed(1)}%`,
+                value: netMargin,
+                displayValue: `${(netMargin * 100).toFixed(1)}%`,
                 maxValue: 0.4,
-                status: getRatioStatus(r.netProfitMargin, 0.10, 0.05, false)
+                status: getRatioStatus(netMargin, 0.10, 0.05, false)
             }
         ];
 
@@ -529,7 +546,22 @@ function initializeDashboard(fmpData) {
     if (ratios && ratios.length > 0 && window.chartsManager) {
         const r = ratios[0];
 
-        window.chartsManager.createGauge('gauge-current-ratio', r.currentRatio || 0, {
+        // Helper to get value from multiple possible property names
+        const getVal = (obj, ...keys) => {
+            for (const key of keys) {
+                if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+            }
+            return 0;
+        };
+
+        const currentRatio = getVal(r, 'currentRatioTTM', 'currentRatio');
+        const debtEquity = getVal(r, 'debtEquityRatioTTM', 'debtEquityRatio', 'debtToEquityTTM', 'debtToEquity');
+        const interestCov = getVal(r, 'interestCoverageTTM', 'interestCoverage');
+        const quickRatio = getVal(r, 'quickRatioTTM', 'quickRatio');
+
+        console.log('Financial Health values:', { currentRatio, debtEquity, interestCov, quickRatio });
+
+        window.chartsManager.createGauge('gauge-current-ratio', currentRatio, {
             label: 'Current Ratio',
             metricKey: 'current_ratio',
             thresholds: { good: 1.5, warning: 1.0 },
@@ -537,7 +569,7 @@ function initializeDashboard(fmpData) {
             invert: false
         });
 
-        window.chartsManager.createGauge('gauge-debt-equity', r.debtEquityRatio || 0, {
+        window.chartsManager.createGauge('gauge-debt-equity', debtEquity, {
             label: 'Debt/Equity',
             metricKey: 'debt_equity',
             thresholds: { good: 0.5, warning: 1.0 },
@@ -545,7 +577,7 @@ function initializeDashboard(fmpData) {
             invert: true
         });
 
-        window.chartsManager.createGauge('gauge-interest-coverage', r.interestCoverage || 0, {
+        window.chartsManager.createGauge('gauge-interest-coverage', interestCov, {
             label: 'Interest Coverage',
             metricKey: 'interest_coverage',
             thresholds: { good: 5, warning: 2 },
@@ -553,7 +585,7 @@ function initializeDashboard(fmpData) {
             invert: false
         });
 
-        window.chartsManager.createGauge('gauge-quick-ratio', r.quickRatio || 0, {
+        window.chartsManager.createGauge('gauge-quick-ratio', quickRatio, {
             label: 'Quick Ratio',
             metricKey: 'quick_ratio',
             thresholds: { good: 1.0, warning: 0.5 },
@@ -580,13 +612,13 @@ function initializeDashboard(fmpData) {
         console.log('keyMetrics[0] all keys:', Object.keys(km));
         console.log('Full keyMetrics[0]:', JSON.stringify(km, null, 2));
 
-        // Try multiple property name variations
-        const valPE = km.peRatio ?? km.priceEarningsRatio ?? km.pe ?? quote.pe ?? quote.peRatio;
-        const valPB = km.pbRatio ?? km.priceToBookRatio ?? km.priceBookRatio;
-        const valPS = km.priceToSalesRatio ?? km.psRatio ?? km.priceSalesRatio;
-        const valEVEBITDA = km.enterpriseValueOverEBITDA ?? km.evEbitda ?? km.evToEbitda;
-        const valDivYield = km.dividendYield ?? km.divYield;
-        const valFCFYield = km.freeCashFlowYield ?? km.fcfYield;
+        // Try multiple property name variations (TTM = Trailing Twelve Months)
+        const valPE = km.peRatioTTM ?? km.peRatio ?? km.priceEarningsRatio ?? km.priceToEarningsRatioTTM ?? quote.pe ?? quote.peRatio;
+        const valPB = km.priceToBookRatioTTM ?? km.priceToBookRatio ?? km.pbRatioTTM ?? km.pbRatio ?? km.priceBookRatio;
+        const valPS = km.priceToSalesRatioTTM ?? km.priceToSalesRatio ?? km.psRatioTTM ?? km.psRatio;
+        const valEVEBITDA = km.enterpriseValueOverEBITDATTM ?? km.enterpriseValueOverEBITDA ?? km.evToEbitda ?? km.evEbitda;
+        const valDivYield = km.dividendYieldTTM ?? km.dividendYield ?? km.dividendYieldPercentageTTM;
+        const valFCFYield = km.freeCashFlowYieldTTM ?? km.freeCashFlowYield ?? km.fcfYield;
 
         console.log('Resolved valuation: PE=', valPE, 'PB=', valPB, 'PS=', valPS, 'EV/EBITDA=', valEVEBITDA);
 
