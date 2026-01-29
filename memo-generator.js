@@ -351,6 +351,18 @@ function initializeDashboard(fmpData) {
     console.log('- ratios:', ratios ? `${ratios.length} items` : 'missing');
     console.log('- keyMetrics:', keyMetrics ? `${keyMetrics.length} items` : 'missing');
 
+    // Detailed logging of ratios and keyMetrics for debugging
+    if (ratios && ratios.length > 0) {
+        console.log('=== RATIOS[0] ALL PROPERTIES ===');
+        console.log('Keys:', Object.keys(ratios[0]));
+        console.log('Full object:', JSON.stringify(ratios[0], null, 2));
+    }
+    if (keyMetrics && keyMetrics.length > 0) {
+        console.log('=== KEYMETRICS[0] ALL PROPERTIES ===');
+        console.log('Keys:', Object.keys(keyMetrics[0]));
+        console.log('Full object:', JSON.stringify(keyMetrics[0], null, 2));
+    }
+
     // 1. Initialize Price Chart
     if (prices && prices.length > 0 && window.chartsManager) {
         console.log('Creating price chart...');
