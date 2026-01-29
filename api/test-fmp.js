@@ -27,6 +27,8 @@ export default async function handler(req, res) {
         // Test individual endpoints
         const profile = await client.getProfile(symbol);
         const quote = await client.getQuote(symbol);
+        const ratios = await client.getRatios(symbol, 1);
+        const keyMetrics = await client.getKeyMetrics(symbol, 1);
 
         return res.status(200).json({
             success: true,
@@ -34,7 +36,9 @@ export default async function handler(req, res) {
             apiKeyConfigured: true,
             data: {
                 profile: profile || 'No data',
-                quote: quote || 'No data'
+                quote: quote || 'No data',
+                ratios: ratios || 'No data',
+                keyMetrics: keyMetrics || 'No data'
             },
             message: 'FMP API is working correctly!'
         });
