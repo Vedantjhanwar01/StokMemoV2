@@ -1,7 +1,7 @@
 // Financial Definitions Database
 // Educational tooltips for every financial term
 
-export const financialDefinitions = {
+const financialDefinitions = {
     // ============================================
     // VALUATION METRICS
     // ============================================
@@ -507,7 +507,7 @@ export const financialDefinitions = {
 };
 
 // Category groupings for organized display
-export const metricCategories = {
+const metricCategories = {
     'Valuation': {
         icon: '💰',
         description: 'Is the stock cheap or expensive?',
@@ -553,14 +553,14 @@ export const metricCategories = {
 /**
  * Get definition for a metric
  */
-export function getDefinition(metricKey) {
+function getDefinition(metricKey) {
     return financialDefinitions[metricKey] || null;
 }
 
 /**
  * Get all metrics in a category
  */
-export function getCategoryMetrics(categoryName) {
+function getCategoryMetrics(categoryName) {
     const category = metricCategories[categoryName];
     if (!category) return [];
 
@@ -570,4 +570,9 @@ export function getCategoryMetrics(categoryName) {
     }));
 }
 
-export default financialDefinitions;
+// Make available globally for non-module context
+window.financialDefinitions = financialDefinitions;
+window.metricCategories = metricCategories;
+window.getDefinition = getDefinition;
+window.getCategoryMetrics = getCategoryMetrics;
+

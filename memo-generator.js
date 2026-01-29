@@ -366,6 +366,10 @@ function initializeDashboard(fmpData) {
         });
     } else {
         console.warn('Price chart skipped - prices:', !!prices, 'chartsManager:', !!window.chartsManager);
+        const chartContainer = document.getElementById('priceChartContainer');
+        if (chartContainer) {
+            chartContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--color-text-tertiary);"><p>Historical price data not available</p></div>';
+        }
     }
 
     // 2. Key Metrics Grid
@@ -422,7 +426,7 @@ function initializeDashboard(fmpData) {
     }
 
     // 4. Profitability Bars
-    if (ratios && ratios.length > 0 && window.chartsManager) {
+    if (ratios && Array.isArray(ratios) && ratios.length > 0 && window.chartsManager) {
         const r = ratios[0];
 
         const profitMetrics = [
@@ -469,6 +473,12 @@ function initializeDashboard(fmpData) {
         ];
 
         window.chartsManager.createRatioBar('profitabilityBars', profitMetrics);
+    } else {
+        // Show message when profitability data is unavailable
+        const profitContainer = document.getElementById('profitabilityBars');
+        if (profitContainer) {
+            profitContainer.innerHTML = '<p style="color:var(--color-text-tertiary); text-align:center; padding: 1rem;">Profitability ratios not available for this stock.</p>';
+        }
     }
 
     // 5. Margin Chart
@@ -511,10 +521,19 @@ function initializeDashboard(fmpData) {
             maxValue: 2.5,
             invert: false
         });
+    } else {
+        // Show message when financial health data is unavailable
+        const gaugeContainers = ['gauge-current-ratio', 'gauge-debt-equity', 'gauge-interest-coverage', 'gauge-quick-ratio'];
+        gaugeContainers.forEach(id => {
+            const container = document.getElementById(id);
+            if (container) {
+                container.innerHTML = '<p style="color:var(--color-text-tertiary); font-size: 0.875rem; text-align:center;">N/A</p>';
+            }
+        });
     }
 
     // 7. Valuation Metrics
-    if (quote && keyMetrics && window.chartsManager) {
+    if (quote && keyMetrics && Array.isArray(keyMetrics) && keyMetrics.length > 0 && window.chartsManager) {
         const km = keyMetrics[0] || {};
 
         const valuationItems = [
@@ -557,6 +576,12 @@ function initializeDashboard(fmpData) {
         ];
 
         window.chartsManager.createMetricsGrid('valuationMetrics', valuationItems);
+    } else {
+        // Show message when valuation data is unavailable
+        const valuationContainer = document.getElementById('valuationMetrics');
+        if (valuationContainer) {
+            valuationContainer.innerHTML = '<p style="color:var(--color-text-tertiary); text-align:center; padding: 1rem;">Valuation metrics not available for this stock.</p>';
+        }
     }
 }
 

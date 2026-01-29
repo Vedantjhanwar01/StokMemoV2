@@ -9,14 +9,11 @@ class InfoTooltip {
         this.setupEventListeners();
     }
 
-    async loadDefinitions() {
-        // Import definitions dynamically for browser compatibility
-        try {
-            const module = await import('../utils/financial-definitions.js');
-            this.definitions = module.financialDefinitions;
-        } catch (e) {
-            console.warn('Could not load financial definitions:', e);
-            this.definitions = {};
+    loadDefinitions() {
+        // Load from window global (financial-definitions.js sets window.financialDefinitions)
+        this.definitions = window.financialDefinitions || {};
+        if (Object.keys(this.definitions).length === 0) {
+            console.warn('Financial definitions not loaded. Make sure financial-definitions.js is loaded before info-tooltip.js');
         }
     }
 

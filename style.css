@@ -794,6 +794,8 @@ body {
     z-index: 10000;
     width: 340px;
     max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
     background: var(--color-bg);
     border-radius: var(--radius-lg);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--color-border);
