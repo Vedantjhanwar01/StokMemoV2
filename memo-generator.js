@@ -378,6 +378,29 @@ function initializeDashboard(fmpData) {
         const latestMetrics = keyMetrics?.[0] || {};
         const latestRatios = ratios?.[0] || {};
 
+        // DEBUG: Log all available properties
+        console.log('=== DEBUG: Quote Object Properties ===');
+        console.log('quote keys:', Object.keys(quote));
+        console.log('quote.pe:', quote.pe, '| quote.peRatio:', quote.peRatio, '| quote.priceEarningsRatio:', quote.priceEarningsRatio);
+        console.log('quote.eps:', quote.eps, '| quote.earningsPerShare:', quote.earningsPerShare);
+
+        console.log('=== DEBUG: KeyMetrics Object Properties ===');
+        console.log('keyMetrics[0] keys:', Object.keys(latestMetrics));
+        console.log('P/E related:', latestMetrics.peRatio, latestMetrics.priceEarningsRatio, latestMetrics.pe);
+        console.log('P/B related:', latestMetrics.pbRatio, latestMetrics.priceToBookRatio);
+        console.log('P/S related:', latestMetrics.priceToSalesRatio, latestMetrics.psRatio);
+
+        console.log('=== DEBUG: Ratios Object Properties ===');
+        console.log('ratios[0] keys:', Object.keys(latestRatios));
+        console.log('ROE related:', latestRatios.returnOnEquity, latestRatios.roe);
+        console.log('ROA related:', latestRatios.returnOnAssets, latestRatios.roa);
+
+        // Get P/E and EPS - try multiple property names
+        const peRatio = quote.pe ?? quote.peRatio ?? latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio;
+        const epsValue = quote.eps ?? quote.earningsPerShare ?? latestMetrics.eps ?? latestMetrics.earningsPerShare;
+
+        console.log('Resolved P/E:', peRatio, '| Resolved EPS:', epsValue);
+
         const metrics = [
             {
                 label: 'Market Cap',
@@ -388,13 +411,13 @@ function initializeDashboard(fmpData) {
             {
                 label: 'P/E Ratio',
                 metricKey: 'pe_ratio',
-                value: quote.pe?.toFixed(2) || 'N/A',
-                subtext: getPEAssessment(quote.pe)
+                value: peRatio != null ? peRatio.toFixed(2) : 'N/A',
+                subtext: getPEAssessment(peRatio)
             },
             {
                 label: 'EPS',
                 metricKey: 'eps',
-                value: `$${quote.eps?.toFixed(2) || 'N/A'}`,
+                value: epsValue != null ? `$${epsValue.toFixed(2)}` : '$N/A',
                 subtext: 'Earnings per share'
             },
             {
@@ -536,41 +559,56 @@ function initializeDashboard(fmpData) {
     if (quote && keyMetrics && Array.isArray(keyMetrics) && keyMetrics.length > 0 && window.chartsManager) {
         const km = keyMetrics[0] || {};
 
+        // DEBUG: Log keyMetrics properties
+        console.log('=== DEBUG: Valuation KeyMetrics Properties ===');
+        console.log('keyMetrics[0] all keys:', Object.keys(km));
+        console.log('Full keyMetrics[0]:', JSON.stringify(km, null, 2));
+
+        // Try multiple property name variations
+        const valPE = km.peRatio ?? km.priceEarningsRatio ?? km.pe ?? quote.pe ?? quote.peRatio;
+        const valPB = km.pbRatio ?? km.priceToBookRatio ?? km.priceBookRatio;
+        const valPS = km.priceToSalesRatio ?? km.psRatio ?? km.priceSalesRatio;
+        const valEVEBITDA = km.enterpriseValueOverEBITDA ?? km.evEbitda ?? km.evToEbitda;
+        const valDivYield = km.dividendYield ?? km.divYield;
+        const valFCFYield = km.freeCashFlowYield ?? km.fcfYield;
+
+        console.log('Resolved valuation: PE=', valPE, 'PB=', valPB, 'PS=', valPS, 'EV/EBITDA=', valEVEBITDA);
+
         const valuationItems = [
             {
                 label: 'P/E Ratio',
                 metricKey: 'pe_ratio',
-                value: quote.pe?.toFixed(2) || 'N/A',
+                value: valPE != null ? Number(valPE).toFixed(2) : 'N/A',
                 subtext: 'Price to Earnings'
             },
             {
                 label: 'P/B Ratio',
                 metricKey: 'pb_ratio',
-                value: km.pbRatio?.toFixed(2) || 'N/A',
+                value: valPB != null ? Number(valPB).toFixed(2) : 'N/A',
                 subtext: 'Price to Book'
             },
             {
                 label: 'P/S Ratio',
                 metricKey: 'ps_ratio',
-                value: km.priceToSalesRatio?.toFixed(2) || 'N/A',
+                value: valPS != null ? Number(valPS).toFixed(2) : 'N/A',
                 subtext: 'Price to Sales'
             },
             {
                 label: 'EV/EBITDA',
                 metricKey: 'ev_ebitda',
-                value: km.enterpriseValueOverEBITDA?.toFixed(2) || 'N/A',
+                value: valEVEBITDA != null ? Number(valEVEBITDA).toFixed(2) : 'N/A',
                 subtext: 'Enterprise Value'
             },
             {
                 label: 'Dividend Yield',
                 metricKey: 'dividend_yield',
-                value: km.dividendYield ? `${(km.dividendYield * 100).toFixed(2)}%` : 'N/A',
+                value: valDivYield != null ? `${(Number(valDivYield) * 100).toFixed(2)}%` : 'N/A',
                 subtext: 'Annual dividend'
             },
             {
                 label: 'FCF Yield',
                 metricKey: 'fcf_yield',
-                value: km.freeCashFlowYield ? `${(km.freeCashFlowYield * 100).toFixed(2)}%` : 'N/A',
+                value: valFCFYield != null ? `${(Number(valFCFYield) * 100).toFixed(2)}%` : 'N/A',
                 subtext: 'Free cash flow yield'
             }
         ];
