@@ -479,6 +479,7 @@ function initializeDashboard(fmpData) {
     // 4. Profitability Bars
     if (ratios && Array.isArray(ratios) && ratios.length > 0 && window.chartsManager) {
         const r = ratios[0];
+        const km = keyMetrics?.[0] || {}; // FMP stable API has ROE/ROA in keyMetrics, not ratios!
 
         // Helper to get value from multiple possible property names
         const getValue = (obj, ...keys) => {
@@ -488,12 +489,12 @@ function initializeDashboard(fmpData) {
             return 0;
         };
 
-        // Try multiple property name variations (FMP uses different names in stable vs legacy API)
-        const roe = getValue(r, 'returnOnEquityTTM', 'returnOnEquity', 'roe', 'roeTTM');
-        const roa = getValue(r, 'returnOnAssetsTTM', 'returnOnAssets', 'roa', 'roaTTM');
-        const grossMargin = getValue(r, 'grossProfitMarginTTM', 'grossProfitMargin', 'grossMargin');
-        const opMargin = getValue(r, 'operatingProfitMarginTTM', 'operatingProfitMargin', 'operatingMargin');
-        const netMargin = getValue(r, 'netProfitMarginTTM', 'netProfitMargin', 'netMargin');
+        // FMP stable API quirk: ROE/ROA are in keyMetrics, margins are in ratios
+        const roe = getValue(km, 'returnOnEquity', 'returnOnEquityTTM') || getValue(r, 'returnOnEquity', 'returnOnEquityTTM');
+        const roa = getValue(km, 'returnOnAssets', 'returnOnAssetsTTM') || getValue(r, 'returnOnAssets', 'returnOnAssetsTTM');
+        const grossMargin = getValue(r, 'grossProfitMargin', 'grossProfitMarginTTM', 'grossMargin');
+        const opMargin = getValue(r, 'operatingProfitMargin', 'operatingProfitMarginTTM', 'operatingMargin');
+        const netMargin = getValue(r, 'netProfitMargin', 'netProfitMarginTTM', 'netMargin');
 
         console.log('Profitability values found:', { roe, roa, grossMargin, opMargin, netMargin });
 
@@ -566,10 +567,11 @@ function initializeDashboard(fmpData) {
             return 0;
         };
 
-        const currentRatio = getVal(r, 'currentRatioTTM', 'currentRatio');
-        const debtEquity = getVal(r, 'debtEquityRatioTTM', 'debtEquityRatio', 'debtToEquityTTM', 'debtToEquity');
-        const interestCov = getVal(r, 'interestCoverageTTM', 'interestCoverage');
-        const quickRatio = getVal(r, 'quickRatioTTM', 'quickRatio');
+        // FMP stable API property names (verified from test-fmp output)
+        const currentRatio = getVal(r, 'currentRatio');
+        const debtEquity = getVal(r, 'debtToEquityRatio', 'debtEquityRatio');
+        const interestCov = getVal(r, 'interestCoverageRatio', 'interestCoverage');
+        const quickRatio = getVal(r, 'quickRatio');
 
         console.log('Financial Health values:', { currentRatio, debtEquity, interestCov, quickRatio });
 
@@ -622,15 +624,20 @@ function initializeDashboard(fmpData) {
         // DEBUG: Log keyMetrics properties
         console.log('=== DEBUG: Valuation KeyMetrics Properties ===');
         console.log('keyMetrics[0] all keys:', Object.keys(km));
-        console.log('Full keyMetrics[0]:', JSON.stringify(km, null, 2));
 
-        // Try multiple property name variations (TTM = Trailing Twelve Months)
-        const valPE = km.peRatioTTM ?? km.peRatio ?? km.priceEarningsRatio ?? km.priceToEarningsRatioTTM ?? quote.pe ?? quote.peRatio;
-        const valPB = km.priceToBookRatioTTM ?? km.priceToBookRatio ?? km.pbRatioTTM ?? km.pbRatio ?? km.priceBookRatio;
-        const valPS = km.priceToSalesRatioTTM ?? km.priceToSalesRatio ?? km.psRatioTTM ?? km.psRatio;
-        const valEVEBITDA = km.enterpriseValueOverEBITDATTM ?? km.enterpriseValueOverEBITDA ?? km.evToEbitda ?? km.evEbitda;
-        const valDivYield = km.dividendYieldTTM ?? km.dividendYield ?? km.dividendYieldPercentageTTM;
-        const valFCFYield = km.freeCashFlowYieldTTM ?? km.freeCashFlowYield ?? km.fcfYield;
+        // Also get ratios for valuation that's in ratios not keyMetrics
+        const r = ratios?.[0] || {};
+
+        // FMP stable API property names (verified from test-fmp output):
+        // - priceToEarningsRatio, priceToBookRatio, priceToSalesRatio are in RATIOS
+        // - evToEBITDA, freeCashFlowYield are in keyMetrics
+        // - dividendYield is in both but use ratios version
+        const valPE = r.priceToEarningsRatio ?? km.priceToEarningsRatio;
+        const valPB = r.priceToBookRatio ?? km.priceToBookRatio;
+        const valPS = r.priceToSalesRatio ?? km.priceToSalesRatio ?? km.evToSales;
+        const valEVEBITDA = km.evToEBITDA ?? r.enterpriseValueMultiple;
+        const valDivYield = r.dividendYield ?? r.dividendYieldPercentage ?? km.dividendYield;
+        const valFCFYield = km.freeCashFlowYield ?? r.freeCashFlowYield;
 
         console.log('Resolved valuation: PE=', valPE, 'PB=', valPB, 'PS=', valPS, 'EV/EBITDA=', valEVEBITDA);
 
