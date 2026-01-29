@@ -39,6 +39,12 @@ export default async function handler(req, res) {
         console.log(`Fetching FMP data for symbol: ${symbol}`);
         fmpData = await fmpClient.getAllData(symbol);
         console.log('FMP data fetched successfully');
+        console.log('FMP ratios received:', fmpData.ratios ? `${fmpData.ratios.length} items` : 'null/undefined');
+        console.log('FMP keyMetrics received:', fmpData.keyMetrics ? `${fmpData.keyMetrics.length} items` : 'null/undefined');
+        if (fmpData.ratios && fmpData.ratios[0]) {
+          console.log('FMP ratios[0] keys:', Object.keys(fmpData.ratios[0]));
+          console.log('Sample ratio values:', JSON.stringify(fmpData.ratios[0]).substring(0, 500));
+        }
       } catch (fmpError) {
         console.warn('FMP data fetch failed, continuing with AI-only:', fmpError.message);
         // Continue without FMP data - AI will generate analysis
