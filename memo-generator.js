@@ -399,14 +399,23 @@ function initializeDashboard(fmpData) {
         console.log('ROA related:', latestRatios.returnOnAssets, latestRatios.roa);
 
         // Get P/E and EPS - try EVERY POSSIBLE property name using resilient helper
-        const peRatio = findMetric(quote, ['pe', 'peRatio', 'priceEarnings']) ??
-            findMetric(latestMetrics, ['peRatio', 'priceEarnings', 'peRatioTTM']);
+        // Added TTM and additional variations found in global data
+        const peRatio = findMetric(quote, ['pe', 'peRatio', 'priceEarnings', 'peRatioTTM']) ??
+            findMetric(latestMetrics, ['peRatio', 'priceEarnings', 'peRatioTTM', 'pe']);
 
-        const epsValue = findMetric(quote, ['eps', 'earningsPerShare']) ??
-            findMetric(latestMetrics, ['eps', 'earningsPerShare', 'netIncomePerShare']);
+        const epsValue = findMetric(quote, ['eps', 'earningsPerShare', 'epsTTM']) ??
+            findMetric(latestMetrics, ['eps', 'earningsPerShare', 'netIncomePerShare', 'netIncomePerShareTTM', 'epsTTM']);
 
         // Determine currency symbol
         const currencySymbol = getCurrencySymbol(quote?.exchange || 'USD');
+
+        // Fallback for Market Cap (Profile often has it when Quote misses it)
+        const marketCap = findMetric(quote, ['marketCap', 'mktCap', 'marketCapitalization']) ??
+            findMetric(profile, ['mktCap', 'marketCap', 'marketCapitalization']) ??
+            findMetric(latestMetrics, ['marketCap']);
+
+        // Fallback for Price
+        const price = quote?.price || profile?.price;
 
         console.log('Resolved P/E:', peRatio, '| Resolved EPS:', epsValue, '| Currency:', currencySymbol);
 
@@ -425,8 +434,8 @@ function initializeDashboard(fmpData) {
             {
                 label: 'Market Cap',
                 metricKey: 'market_cap',
-                value: formatLargeNum(quote.marketCap, currencySymbol),
-                subtext: getMarketCapCategory(quote.marketCap)
+                value: formatLargeNum(marketCap, currencySymbol),
+                subtext: getMarketCapCategory(marketCap)
             },
             {
                 label: 'P/E Ratio',
@@ -444,13 +453,13 @@ function initializeDashboard(fmpData) {
                 label: '52W High',
                 metricKey: '52_week_high',
                 value: fmtCur(quote.yearHigh),
-                subtext: getDistanceFromHigh(quote.price, quote.yearHigh)
+                subtext: getDistanceFromHigh(price, quote.yearHigh)
             },
             {
                 label: '52W Low',
                 metricKey: '52_week_low',
                 value: fmtCur(quote.yearLow),
-                subtext: getDistanceFromLow(quote.price, quote.yearLow)
+                subtext: getDistanceFromLow(price, quote.yearLow)
             },
             {
                 label: 'Volume',
