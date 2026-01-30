@@ -1,5 +1,5 @@
 // Financial Modeling Prep API Client
-// Uses stable endpoints (August 2025+)
+// Uses standard v3 endpoints for maximum reliability
 
 export class FMPClient {
     constructor(apiKey) {
@@ -7,7 +7,7 @@ export class FMPClient {
             throw new Error('FMP API key is required');
         }
         this.apiKey = apiKey;
-        this.baseUrl = 'https://financialmodelingprep.com/stable';
+        this.baseUrl = 'https://financialmodelingprep.com/api/v3';
     }
 
     /**
@@ -21,164 +21,108 @@ export class FMPClient {
                 apikey: this.apiKey
             });
 
-            const url = `${this.baseUrl}${endpoint}?${queryParams}`;
+            // Handle path parameters vs query parameters
+            const url = endpoint.includes('?')
+                ? `${this.baseUrl}${endpoint}&${queryParams}`
+                : `${this.baseUrl}${endpoint}?${queryParams}`;
 
             const response = await fetch(url);
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`FMP API error (${response.status}): ${errorText}`);
+                console.warn(`FMP API warning (${response.status}) for ${endpoint}: ${errorText}`);
+                return null;
             }
 
             const data = await response.json();
+
+            // FMP sometimes returns error message in a success response
+            if (data && data['Error Message']) {
+                console.warn(`FMP API error message for ${endpoint}: ${data['Error Message']}`);
+                return null;
+            }
+
             return data;
         } catch (error) {
             console.error(`FMP API call failed for ${endpoint}:`, error);
-            throw error;
+            return null;
         }
     }
 
     /**
      * Get company profile
-     * Returns: Basic company info, sector, industry, market cap
      */
     async getProfile(symbol) {
-        const data = await this.fetch('/profile', { symbol });
+        const data = await this.fetch(`/profile/${symbol}`);
         return data && data.length > 0 ? data[0] : null;
     }
 
     /**
      * Get real-time stock quote
-     * Returns: Current price, change, volume, 52-week high/low
      */
     async getQuote(symbol) {
-        const data = await this.fetch('/quote', { symbol });
+        const data = await this.fetch(`/quote/${symbol}`);
         return data && data.length > 0 ? data[0] : null;
     }
 
     /**
-     * Get historical prices (End of Day)
-     * Returns: Array of {date, open, high, low, close, volume}
+     * Get historical prices
      */
     async getHistoricalPrices(symbol, from = null, to = null) {
-        const params = { symbol };
+        const params = {};
         if (from) params.from = from;
         if (to) params.to = to;
 
-        // Try multiple endpoint formats (FMP API has changed endpoints over time)
-        const endpoints = [
-            '/historical-price-eod/full',
-            '/historical-price-eod',
-            '/historical-price-full/full'
-        ];
-
-        for (const endpoint of endpoints) {
-            try {
-                console.log(`FMP: Trying historical prices endpoint: ${endpoint}`);
-                const data = await this.fetch(endpoint, params);
-
-                let prices = [];
-
-                // Handle different response formats
-                if (Array.isArray(data)) {
-                    prices = data;
-                } else if (data?.historical && Array.isArray(data.historical)) {
-                    prices = data.historical;
-                } else if (data && typeof data === 'object') {
-                    // Try to find an array in the response
-                    for (const key of Object.keys(data)) {
-                        if (Array.isArray(data[key]) && data[key].length > 0) {
-                            console.log(`FMP prices: found array in key '${key}'`);
-                            prices = data[key];
-                            break;
-                        }
-                    }
-                }
-
-                if (prices.length > 0) {
-                    console.log(`FMP prices: SUCCESS - got ${prices.length} items from ${endpoint}`);
-                    return prices;
-                }
-
-                console.log(`FMP prices: ${endpoint} returned empty, trying next...`);
-            } catch (error) {
-                console.warn(`FMP: ${endpoint} failed:`, error.message);
-            }
-        }
-
-        console.warn('FMP prices: All endpoints returned empty or failed');
-        return [];
+        const data = await this.fetch(`/historical-price-full/${symbol}`, params);
+        return data && data.historical ? data.historical : [];
     }
 
     /**
-     * Get income statements (up to 5 years)
-     * Returns: Array of annual income statements
+     * Financial statements
      */
     async getIncomeStatement(symbol, limit = 5) {
-        const data = await this.fetch('/income-statement', {
-            symbol,
-            limit: limit.toString()
-        });
+        const data = await this.fetch(`/income-statement/${symbol}`, { limit });
         return data || [];
     }
 
-    /**
-     * Get balance sheet statements
-     * Returns: Array of annual balance sheets
-     */
     async getBalanceSheet(symbol, limit = 5) {
-        const data = await this.fetch('/balance-sheet-statement', {
-            symbol,
-            limit: limit.toString()
-        });
+        const data = await this.fetch(`/balance-sheet-statement/${symbol}`, { limit });
         return data || [];
     }
 
-    /**
-     * Get cash flow statements
-     * Returns: Array of annual cash flows
-     */
     async getCashFlow(symbol, limit = 5) {
-        const data = await this.fetch('/cash-flow-statement', {
-            symbol,
-            limit: limit.toString()
-        });
+        const data = await this.fetch(`/cash-flow-statement/${symbol}`, { limit });
         return data || [];
     }
 
     /**
-     * Get financial ratios
-     * Returns: Array of annual ratios (ROE, debt-to-equity, etc.)
+     * Ratios and Metrics
      */
     async getRatios(symbol, limit = 5) {
-        const data = await this.fetch('/ratios', {
-            symbol,
-            limit: limit.toString()
-        });
+        const data = await this.fetch(`/ratios/${symbol}`, { limit });
         return data || [];
     }
 
-    /**
-     * Get key metrics
-     * Returns: Array of annual metrics (P/E, EPS, revenue per share, etc.)
-     */
     async getKeyMetrics(symbol, limit = 5) {
-        const data = await this.fetch('/key-metrics', {
-            symbol,
-            limit: limit.toString()
-        });
+        const data = await this.fetch(`/key-metrics/${symbol}`, { limit });
         return data || [];
     }
 
     /**
-     * Get all data for a symbol (convenience method)
-     * Returns: Object with all financial data
+     * Get all data for a symbol (RESILIENT VERSION)
      */
     async getAllData(symbol) {
         try {
+            console.log(`FMP: Starting data fetch for ${symbol}`);
+
+            // Profile and Quote are base data
+            const [profile, quote] = await Promise.all([
+                this.getProfile(symbol),
+                this.getQuote(symbol)
+            ]);
+
+            // Optional data points - failure in one shouldn't kill the dashboard
             const [
-                profile,
-                quote,
                 prices,
                 incomeStatements,
                 balanceSheets,
@@ -186,93 +130,51 @@ export class FMPClient {
                 ratios,
                 keyMetrics
             ] = await Promise.all([
-                this.getProfile(symbol),
-                this.getQuote(symbol),
-                this.getHistoricalPrices(symbol),
-                this.getIncomeStatement(symbol, 5),
-                this.getBalanceSheet(symbol, 5),
-                this.getCashFlow(symbol, 5),
-                this.getRatios(symbol, 5),
-                this.getKeyMetrics(symbol, 5)
+                this.getHistoricalPrices(symbol).catch(() => []),
+                this.getIncomeStatement(symbol, 5).catch(() => []),
+                this.getBalanceSheet(symbol, 5).catch(() => []),
+                this.getCashFlow(symbol, 5).catch(() => []),
+                this.getRatios(symbol, 5).catch(() => []),
+                this.getKeyMetrics(symbol, 5).catch(() => [])
             ]);
 
             return {
-                profile,
-                quote,
-                prices,
+                profile: profile || {},
+                quote: quote || { symbol, price: 0 },
+                prices: prices || [],
                 statements: {
-                    income: incomeStatements,
-                    balance: balanceSheets,
-                    cashFlow: cashFlows
+                    income: incomeStatements || [],
+                    balance: balanceSheets || [],
+                    cashFlow: cashFlows || []
                 },
-                ratios,
-                keyMetrics
+                ratios: ratios || [],
+                keyMetrics: keyMetrics || []
             };
         } catch (error) {
-            console.error('FMP getAllData failed:', error);
-            throw error;
+            console.error('FMP: Detailed fetch failed:', error);
+            // Fallback object to prevent frontend crash
+            return {
+                profile: {},
+                quote: { symbol, price: 0 },
+                prices: [],
+                statements: { income: [], balance: [], cashFlow: [] },
+                ratios: [],
+                keyMetrics: []
+            };
         }
     }
+
     /**
-     * Search companies by name/symbol - LIVE SEARCH
-     * Returns up to 15 matching companies from any exchange
+     * Search and Resolve
      */
     async searchCompanies(query, preferredExchange = null) {
         try {
-            // Use v3 API for search (search endpoint most reliable)
             const url = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=30&apikey=${this.apiKey}`;
             const response = await fetch(url);
-
-            if (!response.ok) {
-                console.error('FMP Search Error:', response.status);
-                return [];
-            }
-
+            if (!response.ok) return [];
             let results = await response.json();
+            if (!results || results.length === 0) return [];
 
-            if (!results || results.length === 0) {
-                return [];
-            }
-
-            // Filter and prioritize results by exchange if specified
-            if (preferredExchange && preferredExchange !== 'ANY') {
-                const exchangeSuffixes = {
-                    'NSE': '.NS',
-                    'BSE': '.BO',
-                    'NYSE': ['', null],
-                    'NASDAQ': ['', null],
-                    'LSE': '.L',
-                    'TSX': '.TO',
-                    'ASX': '.AX',
-                    'HKEX': '.HK'
-                };
-
-                const suffix = exchangeSuffixes[preferredExchange];
-
-                if (suffix) {
-                    const matchingExchange = results.filter(r => {
-                        if (Array.isArray(suffix)) {
-                            return r.exchangeShortName === preferredExchange ||
-                                r.exchangeShortName === 'NYSE' ||
-                                r.exchangeShortName === 'NASDAQ';
-                        }
-                        return r.symbol.endsWith(suffix) || r.exchangeShortName === preferredExchange;
-                    });
-
-                    const others = results.filter(r => {
-                        if (Array.isArray(suffix)) {
-                            return r.exchangeShortName !== preferredExchange &&
-                                r.exchangeShortName !== 'NYSE' &&
-                                r.exchangeShortName !== 'NASDAQ';
-                        }
-                        return !r.symbol.endsWith(suffix) && r.exchangeShortName !== preferredExchange;
-                    });
-
-                    results = [...matchingExchange, ...others];
-                }
-            }
-
-            // Return top 15 results with normalized format
             return results.slice(0, 15).map(r => ({
                 name: r.name,
                 symbol: r.symbol,
@@ -280,59 +182,36 @@ export class FMPClient {
                 currency: this.getCurrencyByExchange(r.exchangeShortName || r.stockExchange)
             }));
         } catch (error) {
-            console.error('FMP Search Error:', error);
             return [];
         }
     }
 
-    /**
-     * Resolve company name to exact symbol dynamically
-     */
     async resolveSymbolDynamic(companyName, preferredExchange = null) {
         try {
             const results = await this.searchCompanies(companyName, preferredExchange);
+            if (!results || results.length === 0) return companyName.toUpperCase();
 
-            if (!results || results.length === 0) {
-                return companyName.toUpperCase();
-            }
-
-            // Try exact name match first
             const normalized = companyName.toLowerCase().trim();
             const exactMatch = results.find(r =>
                 r.name.toLowerCase().trim() === normalized ||
                 r.symbol.toLowerCase().trim() === normalized
             );
 
-            if (exactMatch) {
-                return exactMatch.symbol;
-            }
-
+            if (exactMatch) return exactMatch.symbol;
             return results[0].symbol;
         } catch (error) {
-            console.error('Symbol Resolution Error:', error);
             return companyName.toUpperCase();
         }
     }
 
-    /**
-     * Get currency symbol based on exchange
-     */
     getCurrencyByExchange(exchange) {
         const currencyMap = {
-            // India
             'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
-            // US
-            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$', 'NYSE ARCA': '$', 'BATS': '$',
-            // UK
+            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
             'LSE': '£', 'LON': '£',
-            // Europe
-            'XETRA': '€', 'FRA': '€', 'PAR': '€', 'AMS': '€',
-            // Canada
-            'TSX': 'C$', 'TSXV': 'C$',
-            // Australia
-            'ASX': 'A$',
-            // Asia
-            'HKEX': 'HK$', 'HKG': 'HK$', 'SGX': 'S$', 'JPX': '¥', 'TSE': '¥'
+            'XETRA': '€', 'FRA': '€', 'PAR': '€',
+            'TSX': 'C$', 'ASX': 'A$',
+            'HKEX': 'HK$', 'JPX': '¥'
         };
         return currencyMap[exchange] || '$';
     }
