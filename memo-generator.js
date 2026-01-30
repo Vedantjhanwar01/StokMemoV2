@@ -33,7 +33,10 @@ class MemoGenerator {
     generateAnalyticsDashboard(fmpData, company) {
         const { quote, profile, prices, statements, ratios, keyMetrics } = fmpData;
 
-        let html = `<div class="analytics-dashboard">`;
+        // Determine currency symbol based on company exchange
+        const currencySymbol = this.getCurrencySymbol(company?.exchange || quote?.exchange);
+
+        let html = `<div class="analytics-dashboard" data-currency="${currencySymbol}">`;
 
         // ============================================
         // SECTION 1: Price Hero with Chart
@@ -46,7 +49,7 @@ class MemoGenerator {
             html += `
                 <div class="dashboard-header">
                     <div class="stock-price-hero">
-                        <span class="current-price">$${quote.price?.toFixed(2) || 'N/A'}</span>
+                        <span class="current-price">${currencySymbol}${quote.price?.toFixed(2) || 'N/A'}</span>
                         <span class="price-change ${isPositive ? 'positive' : 'negative'}">
                             ${isPositive ? '+' : ''}${priceChange.toFixed(2)} (${isPositive ? '+' : ''}${changePercent.toFixed(2)}%)
                         </span>
@@ -299,8 +302,29 @@ class MemoGenerator {
         </div>`;
     }
 
-    // Utility: Format large numbers
-    formatLargeNumber(value) {
+    // Get currency symbol based on exchange
+    getCurrencySymbol(exchange) {
+        const currencyMap = {
+            // India
+            'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
+            // US
+            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$', 'NYSE ARCA': '$',
+            // UK
+            'LSE': '£', 'LON': '£',
+            // Europe
+            'XETRA': '€', 'FRA': '€', 'PAR': '€',
+            // Canada
+            'TSX': 'C$', 'TSXV': 'C$',
+            // Australia
+            'ASX': 'A$',
+            // Asia
+            'HKEX': 'HK$', 'HKG': 'HK$', 'SGX': 'S$', 'JPX': '¥', 'TSE': '¥'
+        };
+        return currencyMap[exchange] || '$';
+    }
+
+    // Utility: Format large numbers with dynamic currency
+    formatLargeNumber(value, currencySymbol = '$') {
         if (value === null || value === undefined || value === 'Not disclosed') {
             return 'Not disclosed';
         }
@@ -309,13 +333,13 @@ class MemoGenerator {
         if (isNaN(num)) return 'Not disclosed';
 
         if (Math.abs(num) >= 1e12) {
-            return `$${(num / 1e12).toFixed(2)}T`;
+            return `${currencySymbol}${(num / 1e12).toFixed(2)}T`;
         } else if (Math.abs(num) >= 1e9) {
-            return `$${(num / 1e9).toFixed(2)}B`;
+            return `${currencySymbol}${(num / 1e9).toFixed(2)}B`;
         } else if (Math.abs(num) >= 1e6) {
-            return `$${(num / 1e6).toFixed(2)}M`;
+            return `${currencySymbol}${(num / 1e6).toFixed(2)}M`;
         } else {
-            return `$${num.toFixed(2)}`;
+            return `${currencySymbol}${num.toFixed(2)}`;
         }
     }
 
@@ -390,6 +414,11 @@ function initializeDashboard(fmpData) {
         const latestMetrics = keyMetrics?.[0] || {};
         const latestRatios = ratios?.[0] || {};
 
+        // Get currency from dashboard data attribute (set by memo generator)
+        const dashboardEl = document.querySelector('.analytics-dashboard');
+        const currencySymbol = dashboardEl?.dataset?.currency || '$';
+        console.log('Using currency symbol:', currencySymbol);
+
         // DEBUG: Log all available properties as plain text (not expandable objects)
         console.log('=== DEBUG: Quote Object Keys ===', Object.keys(quote).join(', '));
 
@@ -433,7 +462,7 @@ function initializeDashboard(fmpData) {
             {
                 label: 'Market Cap',
                 metricKey: 'market_cap',
-                value: formatLargeNum(quote.marketCap),
+                value: formatLargeNum(quote.marketCap, currencySymbol),
                 subtext: getMarketCapCategory(quote.marketCap)
             },
             {
@@ -445,19 +474,19 @@ function initializeDashboard(fmpData) {
             {
                 label: 'EPS',
                 metricKey: 'eps',
-                value: epsValue != null ? `$${epsValue.toFixed(2)}` : '$N/A',
+                value: epsValue != null ? `${currencySymbol}${epsValue.toFixed(2)}` : `${currencySymbol}N/A`,
                 subtext: 'Earnings per share'
             },
             {
                 label: '52W High',
                 metricKey: '52_week_high',
-                value: `$${quote.yearHigh?.toFixed(2) || 'N/A'}`,
+                value: `${currencySymbol}${quote.yearHigh?.toFixed(2) || 'N/A'}`,
                 subtext: getDistanceFromHigh(quote.price, quote.yearHigh)
             },
             {
                 label: '52W Low',
                 metricKey: '52_week_low',
-                value: `$${quote.yearLow?.toFixed(2) || 'N/A'}`,
+                value: `${currencySymbol}${quote.yearLow?.toFixed(2) || 'N/A'}`,
                 subtext: getDistanceFromLow(quote.price, quote.yearLow)
             },
             {
@@ -697,14 +726,29 @@ function initializeDashboard(fmpData) {
 // ============================================
 // Helper Functions
 // ============================================
-function formatLargeNum(value) {
+
+// Get currency symbol based on exchange
+function getCurrencyForExchange(exchange) {
+    const currencyMap = {
+        'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
+        'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
+        'LSE': '£', 'LON': '£',
+        'XETRA': '€', 'FRA': '€',
+        'TSX': 'C$', 'TSXV': 'C$',
+        'ASX': 'A$',
+        'HKEX': 'HK$', 'HKG': 'HK$'
+    };
+    return currencyMap[exchange] || '$';
+}
+
+function formatLargeNum(value, currencySymbol = '$') {
     if (!value) return 'N/A';
     const num = parseFloat(value);
     if (isNaN(num)) return 'N/A';
 
-    if (Math.abs(num) >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
-    if (Math.abs(num) >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-    if (Math.abs(num) >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
+    if (Math.abs(num) >= 1e12) return `${currencySymbol}${(num / 1e12).toFixed(2)}T`;
+    if (Math.abs(num) >= 1e9) return `${currencySymbol}${(num / 1e9).toFixed(2)}B`;
+    if (Math.abs(num) >= 1e6) return `${currencySymbol}${(num / 1e6).toFixed(1)}M`;
     if (Math.abs(num) >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
     return num.toFixed(0);
 }

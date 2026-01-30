@@ -21,7 +21,8 @@ export default async function handler(req, res) {
     // Use FMP search if API key exists, else fallback to static list
     if (apiKey) {
         try {
-            const searchUrl = `https://financialmodelingprep.com/stable/search?query=${encodeURIComponent(q)}&apikey=${apiKey}`;
+            // Use v3 API for better search results
+            const searchUrl = `https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(q)}&limit=30&apikey=${apiKey}`;
 
             const response = await fetch(searchUrl);
 
@@ -31,11 +32,26 @@ export default async function handler(req, res) {
 
             const results = await response.json();
 
-            // Map FMP results to our format
+            // Currency mapping
+            const getCurrency = (exchange) => {
+                const map = {
+                    'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
+                    'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
+                    'LSE': '£', 'LON': '£',
+                    'TSX': 'C$', 'TSXV': 'C$',
+                    'ASX': 'A$',
+                    'HKEX': 'HK$', 'HKG': 'HK$',
+                    'XETRA': '€', 'FRA': '€'
+                };
+                return map[exchange] || '$';
+            };
+
+            // Map FMP results to our format with currency
             const companies = results.slice(0, 15).map(item => ({
                 name: item.name,
                 symbol: item.symbol,
-                exchange: item.exchangeShortName || item.stockExchange || 'Unknown'
+                exchange: item.exchangeShortName || item.stockExchange || 'Unknown',
+                currency: getCurrency(item.exchangeShortName || item.stockExchange)
             }));
 
             return res.status(200).json({ companies });

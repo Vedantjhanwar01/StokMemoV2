@@ -28,14 +28,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Use provided symbol from search, or try to resolve from name
-    const symbol = providedSymbol || resolveSymbol(companyName, exchange);
+    // Create FMP client first for dynamic symbol resolution
+    const fmpClient = fmpApiKey ? new FMPClient(fmpApiKey) : null;
 
-    // Step 2: Fetch FMP financial data (if FMP key available)
+    // Use provided symbol from search, or resolve dynamically
+    const symbol = providedSymbol || await resolveSymbol(companyName, exchange, fmpClient);
+    console.log(`Symbol resolved: "${companyName}" -> ${symbol}`);
+
+    // Step 2: Fetch FMP financial data (if FMP client available)
     let fmpData = null;
-    if (fmpApiKey && symbol) {
+    if (fmpClient && symbol) {
       try {
-        const fmpClient = new FMPClient(fmpApiKey);
         console.log(`Fetching FMP data for symbol: ${symbol}`);
         fmpData = await fmpClient.getAllData(symbol);
         console.log('FMP data fetched successfully');
@@ -71,9 +74,11 @@ export default async function handler(req, res) {
   }
 }
 
-// Symbol resolver - maps company names to ticker symbols
-function resolveSymbol(companyName, exchange) {
-  const symbolMap = {
+// Symbol resolver - now uses FMP API for dynamic resolution
+// Falls back to local mapping for common stocks (faster)
+async function resolveSymbol(companyName, exchange, fmpClient = null) {
+  // Quick lookup for most common stocks (performance optimization)
+  const quickLookup = {
     // US Stocks
     'apple': 'AAPL',
     'microsoft': 'MSFT',
@@ -85,19 +90,110 @@ function resolveSymbol(companyName, exchange) {
     'tesla': 'TSLA',
     'nvidia': 'NVDA',
     'netflix': 'NFLX',
+    'amd': 'AMD',
+    'intel': 'INTC',
+    'salesforce': 'CRM',
+    'adobe': 'ADBE',
+    'paypal': 'PYPL',
+    'uber': 'UBER',
+    'spotify': 'SPOT',
+    'airbnb': 'ABNB',
+    'coca-cola': 'KO',
+    'coca cola': 'KO',
+    'pepsi': 'PEP',
+    'pepsico': 'PEP',
+    'walmart': 'WMT',
+    'disney': 'DIS',
+    'nike': 'NKE',
+    'mcdonalds': 'MCD',
+    'starbucks': 'SBUX',
+    'boeing': 'BA',
+    'jpmorgan': 'JPM',
+    'jp morgan': 'JPM',
+    'visa': 'V',
+    'mastercard': 'MA',
+    'johnson & johnson': 'JNJ',
+    'johnson and johnson': 'JNJ',
+    'pfizer': 'PFE',
+    'berkshire': 'BRK-B',
+    'berkshire hathaway': 'BRK-B',
+    'exxon': 'XOM',
+    'chevron': 'CVX',
 
     // Indian Stocks (NSE)
     'reliance': 'RELIANCE.NS',
+    'reliance industries': 'RELIANCE.NS',
     'tcs': 'TCS.NS',
+    'tata consultancy': 'TCS.NS',
     'infosys': 'INFY.NS',
     'hdfc bank': 'HDFCBANK.NS',
     'icici bank': 'ICICIBANK.NS',
     'bharti airtel': 'BHARTIARTL.NS',
-    'itc': 'ITC.NS'
+    'airtel': 'BHARTIARTL.NS',
+    'itc': 'ITC.NS',
+    'wipro': 'WIPRO.NS',
+    'hcl tech': 'HCLTECH.NS',
+    'hcl technologies': 'HCLTECH.NS',
+    'asian paints': 'ASIANPAINT.NS',
+    'maruti': 'MARUTI.NS',
+    'maruti suzuki': 'MARUTI.NS',
+    'sun pharma': 'SUNPHARMA.NS',
+    'sun pharmaceutical': 'SUNPHARMA.NS',
+    'kotak': 'KOTAKBANK.NS',
+    'kotak mahindra': 'KOTAKBANK.NS',
+    'axis bank': 'AXISBANK.NS',
+    'l&t': 'LT.NS',
+    'larsen': 'LT.NS',
+    'larsen & toubro': 'LT.NS',
+    'bajaj finance': 'BAJFINANCE.NS',
+    'titan': 'TITAN.NS',
+    'tata motors': 'TATAMOTORS.NS',
+    'tata steel': 'TATASTEEL.NS',
+    'adani': 'ADANIENT.NS',
+    'adani enterprises': 'ADANIENT.NS',
+    'sbi': 'SBIN.NS',
+    'state bank': 'SBIN.NS',
+    'state bank of india': 'SBIN.NS',
+    'hindustan unilever': 'HINDUNILVR.NS',
+    'hul': 'HINDUNILVR.NS',
+    'ntpc': 'NTPC.NS',
+    'power grid': 'POWERGRID.NS',
+    'ongc': 'ONGC.NS',
+    'coal india': 'COALINDIA.NS',
+    'ultratech': 'ULTRACEMCO.NS',
+    'ultratech cement': 'ULTRACEMCO.NS',
+    'nestle': 'NESTLEIND.NS',
+    'nestle india': 'NESTLEIND.NS',
+    'britannia': 'BRITANNIA.NS',
+    'dr reddy': 'DRREDDY.NS',
+    "dr reddy's": 'DRREDDY.NS',
+    'cipla': 'CIPLA.NS',
+    'divis': 'DIVISLAB.NS',
+    'divis lab': 'DIVISLAB.NS'
   };
 
   const key = companyName.toLowerCase().trim();
-  return symbolMap[key] || null;
+
+  // Check quick lookup first
+  if (quickLookup[key]) {
+    console.log(`Quick lookup: "${companyName}" -> ${quickLookup[key]}`);
+    return quickLookup[key];
+  }
+
+  // If FMP client available, use dynamic resolution
+  if (fmpClient) {
+    try {
+      console.log(`Dynamic resolution for: "${companyName}" (exchange: ${exchange})`);
+      const resolved = await fmpClient.resolveSymbolDynamic(companyName, exchange);
+      console.log(`Dynamic resolution result: ${resolved}`);
+      return resolved;
+    } catch (error) {
+      console.warn('Dynamic resolution failed, using company name as symbol:', error.message);
+    }
+  }
+
+  // Fallback: return uppercase company name (may work for simple cases)
+  return companyName.toUpperCase().replace(/\s+/g, '');
 }
 
 async function conductResearch(companyName, exchange, apiKey, fmpData = null) {
