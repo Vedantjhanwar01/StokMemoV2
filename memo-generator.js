@@ -330,6 +330,41 @@ class MemoGenerator {
         text += `DISCLAIMER: This report is analytical research aid. Not investment advice.\n`;
         return text;
     }
+
+    getCurrencySymbol(exchange) {
+        const currencyMap = {
+            'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
+            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
+            'LSE': '£', 'LON': '£',
+            'XETRA': '€', 'FRA': '€', 'PAR': '€',
+            'TSX': 'C$', 'ASX': 'A$',
+            'HKEX': 'HK$', 'JPX': '¥'
+        };
+        return currencyMap[exchange] || '$';
+    }
+
+    formatLargeNum(value, symbol = '$') {
+        if (!value) return 'N/A';
+        const num = parseFloat(value);
+        if (isNaN(num)) return 'N/A';
+
+        const absNum = Math.abs(num);
+        const prefix = symbol || '';
+
+        // Detection for Indian numbering system
+        if (symbol === '₹') {
+            if (absNum >= 1e7) return `${prefix}${(num / 1e7).toFixed(2)} Cr`;
+            if (absNum >= 1e5) return `${prefix}${(num / 1e5).toFixed(2)} L`;
+            if (absNum >= 1e3) return `${prefix}${(num / 1e3).toFixed(2)} K`;
+        } else {
+            if (absNum >= 1e12) return `${prefix}${(num / 1e12).toFixed(2)}T`;
+            if (absNum >= 1e9) return `${prefix}${(num / 1e9).toFixed(2)}B`;
+            if (absNum >= 1e6) return `${prefix}${(num / 1e6).toFixed(1)}M`;
+            if (absNum >= 1e3) return `${prefix}${(num / 1e3).toFixed(1)}K`;
+        }
+
+        return prefix + num.toLocaleString();
+    }
 }
 
 // ============================================
@@ -627,45 +662,11 @@ function initializeDashboard(fmpData) {
             valuationContainer.innerHTML = '<p style="color:var(--color-text-tertiary); text-align:center; padding: 1rem;">Valuation metrics not available for this stock.</p>';
         }
     }
-
-    // ============================================
-    // Helper Functions
-    // ============================================
-    getCurrencySymbol(exchange) {
-        const currencyMap = {
-            'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
-            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
-            'LSE': '£', 'LON': '£',
-            'XETRA': '€', 'FRA': '€', 'PAR': '€',
-            'TSX': 'C$', 'ASX': 'A$',
-            'HKEX': 'HK$', 'JPX': '¥'
-        };
-        return currencyMap[exchange] || '$';
-    }
-
-    formatLargeNum(value, symbol = '$') {
-        if (!value) return 'N/A';
-        const num = parseFloat(value);
-        if (isNaN(num)) return 'N/A';
-
-        const absNum = Math.abs(num);
-        const prefix = symbol || '';
-
-        // Detection for Indian numbering system
-        if (symbol === '₹') {
-            if (absNum >= 1e7) return `${prefix}${(num / 1e7).toFixed(2)} Cr`;
-            if (absNum >= 1e5) return `${prefix}${(num / 1e5).toFixed(2)} L`;
-            if (absNum >= 1e3) return `${prefix}${(num / 1e3).toFixed(2)} K`;
-        } else {
-            if (absNum >= 1e12) return `${prefix}${(num / 1e12).toFixed(2)}T`;
-            if (absNum >= 1e9) return `${prefix}${(num / 1e9).toFixed(2)}B`;
-            if (absNum >= 1e6) return `${prefix}${(num / 1e6).toFixed(1)}M`;
-            if (absNum >= 1e3) return `${prefix}${(num / 1e3).toFixed(1)}K`;
-        }
-
-        return prefix + num.toLocaleString();
-    }
 }
+
+// ============================================
+// Helper Functions (Global)
+// ============================================
 
 function getMarketCapCategory(marketCap) {
     if (!marketCap) return '';
