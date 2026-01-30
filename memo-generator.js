@@ -33,7 +33,10 @@ class MemoGenerator {
     generateAnalyticsDashboard(fmpData, company) {
         const { quote, profile, prices, statements, ratios, keyMetrics } = fmpData;
 
-        let html = `<div class="analytics-dashboard">`;
+        // Determine currency symbol based on company data or exchange
+        const currencySymbol = this.getCurrencySymbol(company?.exchange || quote?.exchange);
+
+        let html = `<div class="analytics-dashboard" data-currency="${currencySymbol}">`;
 
         // ============================================
         // SECTION 1: Price Hero with Chart
@@ -46,7 +49,7 @@ class MemoGenerator {
             html += `
                 <div class="dashboard-header">
                     <div class="stock-price-hero">
-                        <span class="current-price">$${quote.price?.toFixed(2) || 'N/A'}</span>
+                        <span class="current-price">${currencySymbol}${quote.price?.toFixed(2) || 'N/A'}</span>
                         <span class="price-change ${isPositive ? 'positive' : 'negative'}">
                             ${isPositive ? '+' : ''}${priceChange.toFixed(2)} (${isPositive ? '+' : ''}${changePercent.toFixed(2)}%)
                         </span>
@@ -395,9 +398,12 @@ function initializeDashboard(fmpData) {
         console.log('ROE related:', latestRatios.returnOnEquity, latestRatios.roe);
         console.log('ROA related:', latestRatios.returnOnAssets, latestRatios.roa);
 
-        // Get P/E and EPS - try multiple property names
-        const peRatio = quote.pe ?? quote.peRatio ?? latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio;
-        const epsValue = quote.eps ?? quote.earningsPerShare ?? latestMetrics.eps ?? latestMetrics.earningsPerShare;
+        // Get P/E and EPS - try EVERY POSSIBLE property name from FMP (US and Global)
+        const peRatio = quote.pe ?? quote.peRatio ?? quote.priceEarnings ?? quote.priceEarningsRatio ??
+            latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio ?? latestMetrics.peRatioTTM;
+
+        const epsValue = quote.eps ?? quote.earningsPerShare ??
+            latestMetrics.eps ?? latestMetrics.earningsPerShare ?? latestMetrics.netIncomePerShare;
 
         console.log('Resolved P/E:', peRatio, '| Resolved EPS:', epsValue);
 
@@ -405,7 +411,7 @@ function initializeDashboard(fmpData) {
             {
                 label: 'Market Cap',
                 metricKey: 'market_cap',
-                value: formatLargeNum(quote.marketCap),
+                value: this.formatLargeNum(quote.marketCap, currencySymbol),
                 subtext: getMarketCapCategory(quote.marketCap)
             },
             {
@@ -417,26 +423,26 @@ function initializeDashboard(fmpData) {
             {
                 label: 'EPS',
                 metricKey: 'eps',
-                value: epsValue != null ? `$${epsValue.toFixed(2)}` : '$N/A',
+                value: epsValue != null ? `${currencySymbol}${epsValue.toFixed(2)}` : `${currencySymbol}N/A`,
                 subtext: 'Earnings per share'
             },
             {
                 label: '52W High',
                 metricKey: '52_week_high',
-                value: `$${quote.yearHigh?.toFixed(2) || 'N/A'}`,
+                value: `${currencySymbol}${quote.yearHigh?.toFixed(2) || 'N/A'}`,
                 subtext: getDistanceFromHigh(quote.price, quote.yearHigh)
             },
             {
                 label: '52W Low',
                 metricKey: '52_week_low',
-                value: `$${quote.yearLow?.toFixed(2) || 'N/A'}`,
+                value: `${currencySymbol}${quote.yearLow?.toFixed(2) || 'N/A'}`,
                 subtext: getDistanceFromLow(quote.price, quote.yearLow)
             },
             {
                 label: 'Volume',
                 metricKey: 'volume',
-                value: formatLargeNum(quote.volume),
-                subtext: `Avg: ${formatLargeNum(quote.avgVolume)}`
+                value: this.formatLargeNum(quote.volume, ''),
+                subtext: `Avg: ${this.formatLargeNum(quote.avgVolume, '')}`
             }
         ];
 
@@ -621,21 +627,44 @@ function initializeDashboard(fmpData) {
             valuationContainer.innerHTML = '<p style="color:var(--color-text-tertiary); text-align:center; padding: 1rem;">Valuation metrics not available for this stock.</p>';
         }
     }
-}
 
-// ============================================
-// Helper Functions
-// ============================================
-function formatLargeNum(value) {
-    if (!value) return 'N/A';
-    const num = parseFloat(value);
-    if (isNaN(num)) return 'N/A';
+    // ============================================
+    // Helper Functions
+    // ============================================
+    getCurrencySymbol(exchange) {
+        const currencyMap = {
+            'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
+            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
+            'LSE': '£', 'LON': '£',
+            'XETRA': '€', 'FRA': '€', 'PAR': '€',
+            'TSX': 'C$', 'ASX': 'A$',
+            'HKEX': 'HK$', 'JPX': '¥'
+        };
+        return currencyMap[exchange] || '$';
+    }
 
-    if (Math.abs(num) >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
-    if (Math.abs(num) >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-    if (Math.abs(num) >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
-    if (Math.abs(num) >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
-    return num.toFixed(0);
+    formatLargeNum(value, symbol = '$') {
+        if (!value) return 'N/A';
+        const num = parseFloat(value);
+        if (isNaN(num)) return 'N/A';
+
+        const absNum = Math.abs(num);
+        const prefix = symbol || '';
+
+        // Detection for Indian numbering system
+        if (symbol === '₹') {
+            if (absNum >= 1e7) return `${prefix}${(num / 1e7).toFixed(2)} Cr`;
+            if (absNum >= 1e5) return `${prefix}${(num / 1e5).toFixed(2)} L`;
+            if (absNum >= 1e3) return `${prefix}${(num / 1e3).toFixed(2)} K`;
+        } else {
+            if (absNum >= 1e12) return `${prefix}${(num / 1e12).toFixed(2)}T`;
+            if (absNum >= 1e9) return `${prefix}${(num / 1e9).toFixed(2)}B`;
+            if (absNum >= 1e6) return `${prefix}${(num / 1e6).toFixed(1)}M`;
+            if (absNum >= 1e3) return `${prefix}${(num / 1e3).toFixed(1)}K`;
+        }
+
+        return prefix + num.toLocaleString();
+    }
 }
 
 function getMarketCapCategory(marketCap) {
