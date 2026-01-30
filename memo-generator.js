@@ -85,7 +85,7 @@ class MemoGenerator {
         if (statements?.income && statements.income.length > 0) {
             html += `
                 <div class="chart-section">
-                    <h3 class="chart-section-title">📈 Revenue & Earnings Trend (5 Years)</h3>
+                    <h3 class="chart-section-title">📉 Revenue & Earnings Trend (5 Years)</h3>
                     <div class="chart-container" id="revenueChartContainer" style="height: 320px;"></div>
                 </div>
             `;
@@ -410,6 +410,17 @@ function initializeDashboard(fmpData) {
 
         console.log('Resolved P/E:', peRatio, '| Resolved EPS:', epsValue, '| Currency:', currencySymbol);
 
+        // --- Safe Formatting Helpers ---
+        const fmtVal = (v) => {
+            const n = safeFloat(v);
+            return n !== null ? n.toFixed(2) : 'N/A';
+        };
+        const fmtCur = (v) => {
+            const n = safeFloat(v);
+            return n !== null ? `${currencySymbol}${n.toFixed(2)}` : `${currencySymbol}N/A`;
+        };
+        // -------------------------------
+
         const metrics = [
             {
                 label: 'Market Cap',
@@ -420,25 +431,25 @@ function initializeDashboard(fmpData) {
             {
                 label: 'P/E Ratio',
                 metricKey: 'pe_ratio',
-                value: peRatio != null ? peRatio.toFixed(2) : 'N/A',
+                value: fmtVal(peRatio),
                 subtext: getPEAssessment(peRatio)
             },
             {
                 label: 'EPS',
                 metricKey: 'eps',
-                value: epsValue != null ? `${currencySymbol}${epsValue.toFixed(2)}` : `${currencySymbol}N/A`,
+                value: fmtCur(epsValue),
                 subtext: 'Earnings per share'
             },
             {
                 label: '52W High',
                 metricKey: '52_week_high',
-                value: `${currencySymbol}${quote.yearHigh?.toFixed(2) || 'N/A'}`,
+                value: fmtCur(quote.yearHigh),
                 subtext: getDistanceFromHigh(quote.price, quote.yearHigh)
             },
             {
                 label: '52W Low',
                 metricKey: '52_week_low',
-                value: `${currencySymbol}${quote.yearLow?.toFixed(2) || 'N/A'}`,
+                value: fmtCur(quote.yearLow),
                 subtext: getDistanceFromLow(quote.price, quote.yearLow)
             },
             {
@@ -583,41 +594,52 @@ function initializeDashboard(fmpData) {
 
         console.log('Resolved valuation: PE=', valPE, 'PB=', valPB, 'PS=', valPS, 'EV/EBITDA=', valEVEBITDA);
 
+        // --- Safe Formatting Helpers for Valuation ---
+        const fmtVal = (v) => {
+            const n = safeFloat(v);
+            return n !== null ? n.toFixed(2) : 'N/A';
+        };
+        const fmtPct = (v) => {
+            const n = safeFloat(v);
+            return n !== null ? `${(n * 100).toFixed(2)}%` : 'N/A';
+        };
+        // ---------------------------------------------
+
         const valuationItems = [
             {
                 label: 'P/E Ratio',
                 metricKey: 'pe_ratio',
-                value: valPE != null ? Number(valPE).toFixed(2) : 'N/A',
+                value: fmtVal(valPE),
                 subtext: 'Price to Earnings'
             },
             {
                 label: 'P/B Ratio',
                 metricKey: 'pb_ratio',
-                value: valPB != null ? Number(valPB).toFixed(2) : 'N/A',
+                value: fmtVal(valPB),
                 subtext: 'Price to Book'
             },
             {
                 label: 'P/S Ratio',
                 metricKey: 'ps_ratio',
-                value: valPS != null ? Number(valPS).toFixed(2) : 'N/A',
+                value: fmtVal(valPS),
                 subtext: 'Price to Sales'
             },
             {
                 label: 'EV/EBITDA',
                 metricKey: 'ev_ebitda',
-                value: valEVEBITDA != null ? Number(valEVEBITDA).toFixed(2) : 'N/A',
+                value: fmtVal(valEVEBITDA),
                 subtext: 'Enterprise Value'
             },
             {
                 label: 'Dividend Yield',
                 metricKey: 'dividend_yield',
-                value: valDivYield != null ? `${(Number(valDivYield) * 100).toFixed(2)}%` : 'N/A',
+                value: fmtPct(valDivYield),
                 subtext: 'Annual dividend'
             },
             {
                 label: 'FCF Yield',
                 metricKey: 'fcf_yield',
-                value: valFCFYield != null ? `${(Number(valFCFYield) * 100).toFixed(2)}%` : 'N/A',
+                value: fmtPct(valFCFYield),
                 subtext: 'Free cash flow yield'
             }
         ];
@@ -651,11 +673,12 @@ function findMetric(obj, patterns) {
         if (obj[snake] !== undefined && obj[snake] !== null) return obj[snake];
     }
 
-    // 2. Try case-insensitive matching if keys exist
+    // 2. Try case-insensitive matching if keys exist (exact name match only)
     const keys = Object.keys(obj);
     for (const p of patterns) {
         const lowerP = p.toLowerCase();
-        const found = keys.find(k => k.toLowerCase() === lowerP || k.toLowerCase().includes(lowerP));
+        // find exact match case-insensitive
+        const found = keys.find(k => k.toLowerCase() === lowerP);
         if (found && obj[found] !== undefined && obj[found] !== null) return obj[found];
     }
 
@@ -675,7 +698,7 @@ function getCurrencySymbol(exchange) {
 }
 
 function formatLargeNum(value, symbol = '$') {
-    if (!value) return 'N/A';
+    if (value === null || value === undefined || value === 'N/A') return 'N/A';
     const num = parseFloat(value);
     if (isNaN(num)) return 'N/A';
 
@@ -695,6 +718,15 @@ function formatLargeNum(value, symbol = '$') {
     }
 
     return prefix + num.toLocaleString();
+}
+
+/**
+ * Safely parse a float, returning null if invalid/missing
+ */
+function safeFloat(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const num = parseFloat(value);
+    return isNaN(num) ? null : num;
 }
 
 function getMarketCapCategory(marketCap) {
