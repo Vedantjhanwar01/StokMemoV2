@@ -398,12 +398,12 @@ function initializeDashboard(fmpData) {
         console.log('ROE related:', latestRatios.returnOnEquity, latestRatios.roe);
         console.log('ROA related:', latestRatios.returnOnAssets, latestRatios.roa);
 
-        // Get P/E and EPS - try EVERY POSSIBLE property name from FMP (US and Global)
-        const peRatio = quote.pe ?? quote.peRatio ?? quote.priceEarnings ?? quote.priceEarningsRatio ??
-            latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio ?? latestMetrics.peRatioTTM;
+        // Get P/E and EPS - try EVERY POSSIBLE property name using resilient helper
+        const peRatio = findMetric(quote, ['pe', 'peRatio', 'priceEarnings']) ??
+            findMetric(latestMetrics, ['peRatio', 'priceEarnings', 'peRatioTTM']);
 
-        const epsValue = quote.eps ?? quote.earningsPerShare ??
-            latestMetrics.eps ?? latestMetrics.earningsPerShare ?? latestMetrics.netIncomePerShare;
+        const epsValue = findMetric(quote, ['eps', 'earningsPerShare']) ??
+            findMetric(latestMetrics, ['eps', 'earningsPerShare', 'netIncomePerShare']);
 
         // Determine currency symbol
         const currencySymbol = getCurrencySymbol(quote?.exchange || 'USD');
@@ -573,13 +573,13 @@ function initializeDashboard(fmpData) {
         console.log('keyMetrics[0] all keys:', Object.keys(km));
         console.log('Full keyMetrics[0]:', JSON.stringify(km, null, 2));
 
-        // Try multiple property name variations
-        const valPE = km.peRatio ?? km.priceEarningsRatio ?? km.pe ?? quote.pe ?? quote.peRatio;
-        const valPB = km.pbRatio ?? km.priceToBookRatio ?? km.priceBookRatio;
-        const valPS = km.priceToSalesRatio ?? km.psRatio ?? km.priceSalesRatio;
-        const valEVEBITDA = km.enterpriseValueOverEBITDA ?? km.evEbitda ?? km.evToEbitda;
-        const valDivYield = km.dividendYield ?? km.divYield;
-        const valFCFYield = km.freeCashFlowYield ?? km.fcfYield;
+        // Try multiple property name variations with resilient helper
+        const valPE = findMetric(km, ['peRatio', 'priceEarnings', 'pe']) || peRatio;
+        const valPB = findMetric(km, ['pbRatio', 'priceToBook', 'priceBook']);
+        const valPS = findMetric(km, ['priceToSales', 'psRatio', 'priceSales']);
+        const valEVEBITDA = findMetric(km, ['enterpriseValueOverEBITDA', 'evEbitda', 'evToEbitda']);
+        const valDivYield = findMetric(km, ['dividendYield', 'divYield']);
+        const valFCFYield = findMetric(km, ['freeCashFlowYield', 'fcfYield']);
 
         console.log('Resolved valuation: PE=', valPE, 'PB=', valPB, 'PS=', valPS, 'EV/EBITDA=', valEVEBITDA);
 
@@ -635,6 +635,32 @@ function initializeDashboard(fmpData) {
 // ============================================
 // Helper Functions (Global)
 // ============================================
+
+/**
+ * Resiliently find a metric in an object using case-insensitive partial matching
+ */
+function findMetric(obj, patterns) {
+    if (!obj || !patterns) return null;
+
+    // 1. Try exact matches first
+    for (const p of patterns) {
+        if (obj[p] !== undefined && obj[p] !== null) return obj[p];
+
+        // Try snake_case version of camelCase patterns
+        const snake = p.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        if (obj[snake] !== undefined && obj[snake] !== null) return obj[snake];
+    }
+
+    // 2. Try case-insensitive matching if keys exist
+    const keys = Object.keys(obj);
+    for (const p of patterns) {
+        const lowerP = p.toLowerCase();
+        const found = keys.find(k => k.toLowerCase() === lowerP || k.toLowerCase().includes(lowerP));
+        if (found && obj[found] !== undefined && obj[found] !== null) return obj[found];
+    }
+
+    return null;
+}
 
 function getCurrencySymbol(exchange) {
     const currencyMap = {
