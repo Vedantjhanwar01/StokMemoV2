@@ -33,10 +33,7 @@ class MemoGenerator {
     generateAnalyticsDashboard(fmpData, company) {
         const { quote, profile, prices, statements, ratios, keyMetrics } = fmpData;
 
-        // Determine currency symbol based on company exchange
-        const currencySymbol = this.getCurrencySymbol(company?.exchange || quote?.exchange);
-
-        let html = `<div class="analytics-dashboard" data-currency="${currencySymbol}">`;
+        let html = `<div class="analytics-dashboard">`;
 
         // ============================================
         // SECTION 1: Price Hero with Chart
@@ -49,7 +46,7 @@ class MemoGenerator {
             html += `
                 <div class="dashboard-header">
                     <div class="stock-price-hero">
-                        <span class="current-price">${currencySymbol}${quote.price?.toFixed(2) || 'N/A'}</span>
+                        <span class="current-price">$${quote.price?.toFixed(2) || 'N/A'}</span>
                         <span class="price-change ${isPositive ? 'positive' : 'negative'}">
                             ${isPositive ? '+' : ''}${priceChange.toFixed(2)} (${isPositive ? '+' : ''}${changePercent.toFixed(2)}%)
                         </span>
@@ -302,29 +299,8 @@ class MemoGenerator {
         </div>`;
     }
 
-    // Get currency symbol based on exchange
-    getCurrencySymbol(exchange) {
-        const currencyMap = {
-            // India
-            'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
-            // US
-            'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$', 'NYSE ARCA': '$',
-            // UK
-            'LSE': '£', 'LON': '£',
-            // Europe
-            'XETRA': '€', 'FRA': '€', 'PAR': '€',
-            // Canada
-            'TSX': 'C$', 'TSXV': 'C$',
-            // Australia
-            'ASX': 'A$',
-            // Asia
-            'HKEX': 'HK$', 'HKG': 'HK$', 'SGX': 'S$', 'JPX': '¥', 'TSE': '¥'
-        };
-        return currencyMap[exchange] || '$';
-    }
-
-    // Utility: Format large numbers with dynamic currency
-    formatLargeNumber(value, currencySymbol = '$') {
+    // Utility: Format large numbers
+    formatLargeNumber(value) {
         if (value === null || value === undefined || value === 'Not disclosed') {
             return 'Not disclosed';
         }
@@ -333,13 +309,13 @@ class MemoGenerator {
         if (isNaN(num)) return 'Not disclosed';
 
         if (Math.abs(num) >= 1e12) {
-            return `${currencySymbol}${(num / 1e12).toFixed(2)}T`;
+            return `$${(num / 1e12).toFixed(2)}T`;
         } else if (Math.abs(num) >= 1e9) {
-            return `${currencySymbol}${(num / 1e9).toFixed(2)}B`;
+            return `$${(num / 1e9).toFixed(2)}B`;
         } else if (Math.abs(num) >= 1e6) {
-            return `${currencySymbol}${(num / 1e6).toFixed(2)}M`;
+            return `$${(num / 1e6).toFixed(2)}M`;
         } else {
-            return `${currencySymbol}${num.toFixed(2)}`;
+            return `$${num.toFixed(2)}`;
         }
     }
 
@@ -375,18 +351,6 @@ function initializeDashboard(fmpData) {
     console.log('- ratios:', ratios ? `${ratios.length} items` : 'missing');
     console.log('- keyMetrics:', keyMetrics ? `${keyMetrics.length} items` : 'missing');
 
-    // Detailed logging of ratios and keyMetrics for debugging
-    if (ratios && ratios.length > 0) {
-        console.log('=== RATIOS[0] ALL PROPERTIES ===');
-        console.log('Keys:', Object.keys(ratios[0]));
-        console.log('Full object:', JSON.stringify(ratios[0], null, 2));
-    }
-    if (keyMetrics && keyMetrics.length > 0) {
-        console.log('=== KEYMETRICS[0] ALL PROPERTIES ===');
-        console.log('Keys:', Object.keys(keyMetrics[0]));
-        console.log('Full object:', JSON.stringify(keyMetrics[0], null, 2));
-    }
-
     // 1. Initialize Price Chart
     if (prices && prices.length > 0 && window.chartsManager) {
         console.log('Creating price chart...');
@@ -414,47 +378,26 @@ function initializeDashboard(fmpData) {
         const latestMetrics = keyMetrics?.[0] || {};
         const latestRatios = ratios?.[0] || {};
 
-        // Get currency from dashboard data attribute (set by memo generator)
-        const dashboardEl = document.querySelector('.analytics-dashboard');
-        const currencySymbol = dashboardEl?.dataset?.currency || '$';
-        console.log('Using currency symbol:', currencySymbol);
+        // DEBUG: Log all available properties
+        console.log('=== DEBUG: Quote Object Properties ===');
+        console.log('quote keys:', Object.keys(quote));
+        console.log('quote.pe:', quote.pe, '| quote.peRatio:', quote.peRatio, '| quote.priceEarningsRatio:', quote.priceEarningsRatio);
+        console.log('quote.eps:', quote.eps, '| quote.earningsPerShare:', quote.earningsPerShare);
 
-        // DEBUG: Log all available properties as plain text (not expandable objects)
-        console.log('=== DEBUG: Quote Object Keys ===', Object.keys(quote).join(', '));
-
-        console.log('=== DEBUG: KeyMetrics[0] FULL DATA ===');
-        console.log(JSON.stringify(latestMetrics, null, 2));
-
-        console.log('=== DEBUG: Ratios[0] FULL DATA ===');
-        console.log(JSON.stringify(latestRatios, null, 2));
+        console.log('=== DEBUG: KeyMetrics Object Properties ===');
+        console.log('keyMetrics[0] keys:', Object.keys(latestMetrics));
+        console.log('P/E related:', latestMetrics.peRatio, latestMetrics.priceEarningsRatio, latestMetrics.pe);
+        console.log('P/B related:', latestMetrics.pbRatio, latestMetrics.priceToBookRatio);
+        console.log('P/S related:', latestMetrics.priceToSalesRatio, latestMetrics.psRatio);
 
         console.log('=== DEBUG: Ratios Object Properties ===');
         console.log('ratios[0] keys:', Object.keys(latestRatios));
         console.log('ROE related:', latestRatios.returnOnEquity, latestRatios.roe);
         console.log('ROA related:', latestRatios.returnOnAssets, latestRatios.roa);
 
-        // Get P/E and EPS - try multiple property names from keyMetrics since quote doesn't have them
-        // FMP stable API uses different property names than legacy API
-        const peRatio = latestMetrics.peRatioTTM ?? latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio ??
-            latestMetrics.priceToEarningsRatio ?? quote.pe ?? quote.peRatio;
-
-        const epsValue = latestMetrics.netIncomePerShareTTM ?? latestMetrics.netIncomePerShare ??
-            latestMetrics.eps ?? latestMetrics.earningsPerShare ??
-            quote.eps ?? quote.earningsPerShare;
-
-        // Also log what we found
-        console.log('Trying to find P/E from:', {
-            'km.peRatioTTM': latestMetrics.peRatioTTM,
-            'km.peRatio': latestMetrics.peRatio,
-            'km.priceEarningsRatio': latestMetrics.priceEarningsRatio,
-            'quote.pe': quote.pe
-        });
-        console.log('Trying to find EPS from:', {
-            'km.netIncomePerShareTTM': latestMetrics.netIncomePerShareTTM,
-            'km.netIncomePerShare': latestMetrics.netIncomePerShare,
-            'km.eps': latestMetrics.eps,
-            'quote.eps': quote.eps
-        });
+        // Get P/E and EPS - try multiple property names
+        const peRatio = quote.pe ?? quote.peRatio ?? latestMetrics.peRatio ?? latestMetrics.priceEarningsRatio;
+        const epsValue = quote.eps ?? quote.earningsPerShare ?? latestMetrics.eps ?? latestMetrics.earningsPerShare;
 
         console.log('Resolved P/E:', peRatio, '| Resolved EPS:', epsValue);
 
@@ -462,7 +405,7 @@ function initializeDashboard(fmpData) {
             {
                 label: 'Market Cap',
                 metricKey: 'market_cap',
-                value: formatLargeNum(quote.marketCap, currencySymbol),
+                value: formatLargeNum(quote.marketCap),
                 subtext: getMarketCapCategory(quote.marketCap)
             },
             {
@@ -474,19 +417,19 @@ function initializeDashboard(fmpData) {
             {
                 label: 'EPS',
                 metricKey: 'eps',
-                value: epsValue != null ? `${currencySymbol}${epsValue.toFixed(2)}` : `${currencySymbol}N/A`,
+                value: epsValue != null ? `$${epsValue.toFixed(2)}` : '$N/A',
                 subtext: 'Earnings per share'
             },
             {
                 label: '52W High',
                 metricKey: '52_week_high',
-                value: `${currencySymbol}${quote.yearHigh?.toFixed(2) || 'N/A'}`,
+                value: `$${quote.yearHigh?.toFixed(2) || 'N/A'}`,
                 subtext: getDistanceFromHigh(quote.price, quote.yearHigh)
             },
             {
                 label: '52W Low',
                 metricKey: '52_week_low',
-                value: `${currencySymbol}${quote.yearLow?.toFixed(2) || 'N/A'}`,
+                value: `$${quote.yearLow?.toFixed(2) || 'N/A'}`,
                 subtext: getDistanceFromLow(quote.price, quote.yearLow)
             },
             {
@@ -508,65 +451,47 @@ function initializeDashboard(fmpData) {
     // 4. Profitability Bars
     if (ratios && Array.isArray(ratios) && ratios.length > 0 && window.chartsManager) {
         const r = ratios[0];
-        const km = keyMetrics?.[0] || {}; // FMP stable API has ROE/ROA in keyMetrics, not ratios!
-
-        // Helper to get value from multiple possible property names
-        const getValue = (obj, ...keys) => {
-            for (const key of keys) {
-                if (obj[key] !== undefined && obj[key] !== null) return obj[key];
-            }
-            return 0;
-        };
-
-        // FMP stable API quirk: ROE/ROA are in keyMetrics, margins are in ratios
-        const roe = getValue(km, 'returnOnEquity', 'returnOnEquityTTM') || getValue(r, 'returnOnEquity', 'returnOnEquityTTM');
-        const roa = getValue(km, 'returnOnAssets', 'returnOnAssetsTTM') || getValue(r, 'returnOnAssets', 'returnOnAssetsTTM');
-        const grossMargin = getValue(r, 'grossProfitMargin', 'grossProfitMarginTTM', 'grossMargin');
-        const opMargin = getValue(r, 'operatingProfitMargin', 'operatingProfitMarginTTM', 'operatingMargin');
-        const netMargin = getValue(r, 'netProfitMargin', 'netProfitMarginTTM', 'netMargin');
-
-        console.log('Profitability values found:', { roe, roa, grossMargin, opMargin, netMargin });
 
         const profitMetrics = [
             {
                 label: 'Return on Equity (ROE)',
                 metricKey: 'roe',
-                value: roe,
-                displayValue: `${(roe * 100).toFixed(1)}%`,
+                value: r.returnOnEquity || 0,
+                displayValue: `${((r.returnOnEquity || 0) * 100).toFixed(1)}%`,
                 maxValue: 0.5,
-                status: getRatioStatus(roe, 0.15, 0.10, false)
+                status: getRatioStatus(r.returnOnEquity, 0.15, 0.10, false)
             },
             {
                 label: 'Return on Assets (ROA)',
                 metricKey: 'roa',
-                value: roa,
-                displayValue: `${(roa * 100).toFixed(1)}%`,
+                value: r.returnOnAssets || 0,
+                displayValue: `${((r.returnOnAssets || 0) * 100).toFixed(1)}%`,
                 maxValue: 0.3,
-                status: getRatioStatus(roa, 0.10, 0.05, false)
+                status: getRatioStatus(r.returnOnAssets, 0.10, 0.05, false)
             },
             {
                 label: 'Gross Margin',
                 metricKey: 'gross_margin',
-                value: grossMargin,
-                displayValue: `${(grossMargin * 100).toFixed(1)}%`,
+                value: r.grossProfitMargin || 0,
+                displayValue: `${((r.grossProfitMargin || 0) * 100).toFixed(1)}%`,
                 maxValue: 1,
-                status: getRatioStatus(grossMargin, 0.40, 0.25, false)
+                status: getRatioStatus(r.grossProfitMargin, 0.40, 0.25, false)
             },
             {
                 label: 'Operating Margin',
                 metricKey: 'operating_margin',
-                value: opMargin,
-                displayValue: `${(opMargin * 100).toFixed(1)}%`,
+                value: r.operatingProfitMargin || 0,
+                displayValue: `${((r.operatingProfitMargin || 0) * 100).toFixed(1)}%`,
                 maxValue: 0.5,
-                status: getRatioStatus(opMargin, 0.15, 0.08, false)
+                status: getRatioStatus(r.operatingProfitMargin, 0.15, 0.08, false)
             },
             {
                 label: 'Net Margin',
                 metricKey: 'net_margin',
-                value: netMargin,
-                displayValue: `${(netMargin * 100).toFixed(1)}%`,
+                value: r.netProfitMargin || 0,
+                displayValue: `${((r.netProfitMargin || 0) * 100).toFixed(1)}%`,
                 maxValue: 0.4,
-                status: getRatioStatus(netMargin, 0.10, 0.05, false)
+                status: getRatioStatus(r.netProfitMargin, 0.10, 0.05, false)
             }
         ];
 
@@ -588,23 +513,7 @@ function initializeDashboard(fmpData) {
     if (ratios && ratios.length > 0 && window.chartsManager) {
         const r = ratios[0];
 
-        // Helper to get value from multiple possible property names
-        const getVal = (obj, ...keys) => {
-            for (const key of keys) {
-                if (obj[key] !== undefined && obj[key] !== null) return obj[key];
-            }
-            return 0;
-        };
-
-        // FMP stable API property names (verified from test-fmp output)
-        const currentRatio = getVal(r, 'currentRatio');
-        const debtEquity = getVal(r, 'debtToEquityRatio', 'debtEquityRatio');
-        const interestCov = getVal(r, 'interestCoverageRatio', 'interestCoverage');
-        const quickRatio = getVal(r, 'quickRatio');
-
-        console.log('Financial Health values:', { currentRatio, debtEquity, interestCov, quickRatio });
-
-        window.chartsManager.createGauge('gauge-current-ratio', currentRatio, {
+        window.chartsManager.createGauge('gauge-current-ratio', r.currentRatio || 0, {
             label: 'Current Ratio',
             metricKey: 'current_ratio',
             thresholds: { good: 1.5, warning: 1.0 },
@@ -612,7 +521,7 @@ function initializeDashboard(fmpData) {
             invert: false
         });
 
-        window.chartsManager.createGauge('gauge-debt-equity', debtEquity, {
+        window.chartsManager.createGauge('gauge-debt-equity', r.debtEquityRatio || 0, {
             label: 'Debt/Equity',
             metricKey: 'debt_equity',
             thresholds: { good: 0.5, warning: 1.0 },
@@ -620,7 +529,7 @@ function initializeDashboard(fmpData) {
             invert: true
         });
 
-        window.chartsManager.createGauge('gauge-interest-coverage', interestCov, {
+        window.chartsManager.createGauge('gauge-interest-coverage', r.interestCoverage || 0, {
             label: 'Interest Coverage',
             metricKey: 'interest_coverage',
             thresholds: { good: 5, warning: 2 },
@@ -628,7 +537,7 @@ function initializeDashboard(fmpData) {
             invert: false
         });
 
-        window.chartsManager.createGauge('gauge-quick-ratio', quickRatio, {
+        window.chartsManager.createGauge('gauge-quick-ratio', r.quickRatio || 0, {
             label: 'Quick Ratio',
             metricKey: 'quick_ratio',
             thresholds: { good: 1.0, warning: 0.5 },
@@ -647,30 +556,21 @@ function initializeDashboard(fmpData) {
     }
 
     // 7. Valuation Metrics
-    // Check if we have either keyMetrics OR ratios, since valuation data is split between them
-    const hasKeyMetrics = keyMetrics && Array.isArray(keyMetrics) && keyMetrics.length > 0;
-    const hasRatios = ratios && Array.isArray(ratios) && ratios.length > 0;
-
-    if (quote && (hasKeyMetrics || hasRatios) && window.chartsManager) {
-        const km = hasKeyMetrics ? keyMetrics[0] : {};
+    if (quote && keyMetrics && Array.isArray(keyMetrics) && keyMetrics.length > 0 && window.chartsManager) {
+        const km = keyMetrics[0] || {};
 
         // DEBUG: Log keyMetrics properties
         console.log('=== DEBUG: Valuation KeyMetrics Properties ===');
         console.log('keyMetrics[0] all keys:', Object.keys(km));
+        console.log('Full keyMetrics[0]:', JSON.stringify(km, null, 2));
 
-        // Also get ratios for valuation that's in ratios not keyMetrics
-        const r = ratios?.[0] || {};
-
-        // FMP stable API property names (verified from test-fmp output):
-        // - priceToEarningsRatio, priceToBookRatio, priceToSalesRatio are in RATIOS
-        // - evToEBITDA, freeCashFlowYield are in keyMetrics
-        // - dividendYield is in both but use ratios version
-        const valPE = r.priceToEarningsRatio ?? km.priceToEarningsRatio;
-        const valPB = r.priceToBookRatio ?? km.priceToBookRatio;
-        const valPS = r.priceToSalesRatio ?? km.priceToSalesRatio ?? km.evToSales;
-        const valEVEBITDA = km.evToEBITDA ?? r.enterpriseValueMultiple;
-        const valDivYield = r.dividendYield ?? r.dividendYieldPercentage ?? km.dividendYield;
-        const valFCFYield = km.freeCashFlowYield ?? r.freeCashFlowYield;
+        // Try multiple property name variations
+        const valPE = km.peRatio ?? km.priceEarningsRatio ?? km.pe ?? quote.pe ?? quote.peRatio;
+        const valPB = km.pbRatio ?? km.priceToBookRatio ?? km.priceBookRatio;
+        const valPS = km.priceToSalesRatio ?? km.psRatio ?? km.priceSalesRatio;
+        const valEVEBITDA = km.enterpriseValueOverEBITDA ?? km.evEbitda ?? km.evToEbitda;
+        const valDivYield = km.dividendYield ?? km.divYield;
+        const valFCFYield = km.freeCashFlowYield ?? km.fcfYield;
 
         console.log('Resolved valuation: PE=', valPE, 'PB=', valPB, 'PS=', valPS, 'EV/EBITDA=', valEVEBITDA);
 
@@ -726,29 +626,14 @@ function initializeDashboard(fmpData) {
 // ============================================
 // Helper Functions
 // ============================================
-
-// Get currency symbol based on exchange
-function getCurrencyForExchange(exchange) {
-    const currencyMap = {
-        'NSE': '₹', 'BSE': '₹', 'NSI': '₹',
-        'NYSE': '$', 'NASDAQ': '$', 'AMEX': '$',
-        'LSE': '£', 'LON': '£',
-        'XETRA': '€', 'FRA': '€',
-        'TSX': 'C$', 'TSXV': 'C$',
-        'ASX': 'A$',
-        'HKEX': 'HK$', 'HKG': 'HK$'
-    };
-    return currencyMap[exchange] || '$';
-}
-
-function formatLargeNum(value, currencySymbol = '$') {
+function formatLargeNum(value) {
     if (!value) return 'N/A';
     const num = parseFloat(value);
     if (isNaN(num)) return 'N/A';
 
-    if (Math.abs(num) >= 1e12) return `${currencySymbol}${(num / 1e12).toFixed(2)}T`;
-    if (Math.abs(num) >= 1e9) return `${currencySymbol}${(num / 1e9).toFixed(2)}B`;
-    if (Math.abs(num) >= 1e6) return `${currencySymbol}${(num / 1e6).toFixed(1)}M`;
+    if (Math.abs(num) >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (Math.abs(num) >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (Math.abs(num) >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
     if (Math.abs(num) >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
     return num.toFixed(0);
 }
